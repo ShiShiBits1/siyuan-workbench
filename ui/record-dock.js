@@ -54,12 +54,12 @@ export function mountRecordDock(element,{kind,getNotebookId,listTasks,listEvents
         try {
             const [tasks,events]=await Promise.all([listTasks(notebookId),tasksOnly?[]:listEvents(notebookId)]);
             if (!current()) return;
-            const records=[...tasks.filter(task=>!tasksOnly||task.status!=='done'),...events]
+            const records=[...tasks.filter(task=>task.status!=='done'),...events]
                 .filter(record=>tasksOnly||Number.isFinite(time(record)))
                 .sort((a,b)=>Number(a.status==='done')-Number(b.status==='done')
                     || sortableTime(a)-sortableTime(b)
                     || a.title.localeCompare(b.title,'zh-CN'));
-            status.textContent=records.length?`共 ${records.length} 项`:tasksOnly?'当前没有未完成任务。':'当前没有提醒安排。';
+            status.textContent=records.length?`共 ${records.length} 项`:tasksOnly?'当前没有未完成任务。':'当前没有未完成任务的提醒或日程提醒。';
             render(records,notebookId);
         } catch(failure) {
             if (current()) {status.textContent='';error(failure?.message||'读取失败，请刷新重试。');}

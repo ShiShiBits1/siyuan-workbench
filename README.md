@@ -6,7 +6,9 @@ Tasks, projects, calendar, notes and Agent workflows inside SiYuan's document ar
 
 ![Workbench preview](preview.png)
 
-Version **1.10.1** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+Version **1.10.2** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+
+The reminders sidebar hides completed tasks while retaining scheduled events. The full reminder center keeps completed-task history; reopening a task and refreshing restores its reminder in the sidebar.
 
 ## Features
 

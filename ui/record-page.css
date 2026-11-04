@@ -1,0 +1,88 @@
+.swb-record-page-frame {
+  position: fixed;
+  z-index: 6;
+  overflow: hidden;
+  pointer-events: none;
+}
+.swb-record-page-frame[hidden] { display: none !important; }
+.swb-record-page {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--b3-theme-on-background, #233333);
+  background: var(--b3-theme-background, #fff);
+  border-inline-start: 1px solid var(--b3-border-color, #dce3e1);
+  box-shadow: -12px 0 32px #0002;
+  animation: swb-record-page-enter 180ms cubic-bezier(.2,.7,.2,1);
+  font-family: var(--b3-font-family, sans-serif);
+}
+.swb-record-page[hidden], .swb-record-page [hidden] { display: none !important; }
+.swb-record-page--closing { animation: swb-record-page-leave 150ms ease-in forwards; }
+.swb-record-page__bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-block-end: 1px solid var(--b3-border-color, #dce3e1);
+  font-size: 12px;
+  color: var(--b3-theme-on-surface, #63736d);
+}
+.swb-record-page__bar > div { display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.swb-record-page button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--b3-border-color, #dce3e1);
+  border-radius: 999px;
+  color: var(--b3-theme-on-background, #233333);
+  background: var(--b3-theme-background, #fff);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.swb-record-page button:hover { background: var(--b3-theme-surface, #f3f6f4); }
+.swb-record-page button:focus-visible { outline: 2px solid var(--b3-theme-primary, #287763); outline-offset: 2px; }
+.swb-record-page__intro { flex: none; padding: 20px 24px 12px; }
+.swb-record-page__intro h2 { margin: 0; font-size: 24px; line-height: 1.35; overflow-wrap: anywhere; }
+.swb-record-page__metadata { margin: 8px 0 0; color: var(--b3-theme-on-surface, #63736d); font-size: 12px; line-height: 1.5; }
+.swb-record-page__status, .swb-record-page__failure { flex: none; margin: 8px 24px; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.swb-record-page__status { color: var(--b3-theme-on-surface, #63736d); }
+.swb-record-page__failure { color: var(--b3-theme-error, #b4483a); }
+.swb-record-page__failure p { margin: 0 0 8px; }
+.swb-record-page__editor { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
+.swb-record-page__editor-mount, .swb-record-page__editor-mount > .protyle { height: 100%; }
+.swb-record-page__content { display:flex; flex:1; flex-direction:column; min-height:0; min-width:0; }
+.swb-record-page__body { display:flex; flex:1; flex-direction:column; min-height:0; min-width:0; }
+.swb-record-page--properties .swb-record-page__content { overflow:auto; overscroll-behavior:contain; }
+.swb-record-page .swb-record-page__properties { flex:none; min-height:0; min-width:0; padding:4px 24px 16px; background:transparent; }
+.swb-record-page__properties .swb__dialog { box-sizing:border-box; width:100%; max-height:none; overflow:visible; margin:0; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.swb-record-page__properties .swb__dialog > header { display:none; }
+.swb-record-page__properties .swb__form-grid { gap:12px; }
+.swb-record-page__properties :is(input,select,textarea) { box-sizing:border-box; }
+.swb-record-page--properties .swb-record-page__body { flex:none; min-height:340px; height:clamp(340px,55dvh,600px); border-block-start:1px solid var(--b3-border-color,#dce3e1); }
+.swb-record-page__body > h3 { flex:none; margin:0; padding:14px 24px 4px; font-size:13px; font-weight:600; color:var(--b3-theme-on-surface,#63736d); }
+.swb-record-page__body-hint { flex:none; margin:0; padding:0 24px 8px; font-size:12px; line-height:1.5; color:var(--b3-theme-on-surface,#63736d); }
+@keyframes swb-record-page-enter { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes swb-record-page-leave { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@media (max-width: 760px), (pointer: coarse) {
+  .swb-record-page__bar { padding: 8px 12px; }
+  .swb-record-page button { min-height: 44px; }
+  .swb-record-page__intro { padding: 16px 16px 10px; }
+  .swb-record-page__intro h2 { font-size: 22px; }
+  .swb-record-page__status, .swb-record-page__failure { margin-inline: 16px; }
+  .swb-record-page .swb-record-page__properties { padding-inline:16px; }
+  .swb-record-page__properties .swb__form-grid { grid-template-columns:minmax(0,1fr); }
+  .swb-record-page__body > h3 { padding-inline:16px; }
+  .swb-record-page__body-hint { padding-inline:16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .swb-record-page, .swb-record-page--closing { animation: none; }
+}

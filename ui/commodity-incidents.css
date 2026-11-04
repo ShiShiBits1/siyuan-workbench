@@ -1,0 +1,42 @@
+.swci { padding: 20px; color: var(--b3-theme-on-background); font-size: 14px; }
+.swci > header, .swci__tools, .swci footer { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.swci > header { justify-content: space-between; margin-bottom: 16px; }
+.swci h2, .swci h3 { margin: 0; }
+.swci h2 { font-size: 21px; }
+.swci header p { margin: 6px 0 0; color: var(--b3-theme-on-surface); }
+.swci button, .swci input, .swci select, .swci textarea {
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--b3-border-color);
+  border-radius: 6px;
+  background: var(--b3-theme-background);
+  color: inherit;
+  font: inherit;
+}
+.swci button { cursor: pointer; }
+.swci button:disabled { cursor: default; opacity: .65; }
+.swci button:focus-visible, .swci input:focus-visible, .swci select:focus-visible, .swci textarea:focus-visible {
+  outline: 2px solid var(--b3-theme-primary);
+  outline-offset: 2px;
+}
+.swci header button, .swci button[type="submit"] {
+  color: var(--b3-theme-on-primary, #fff);
+  background: var(--b3-theme-primary);
+  border-color: var(--b3-theme-primary);
+}
+.swci__results { margin-top: 16px; overflow-x: auto; }
+.swci table { width: 100%; border-collapse: collapse; text-align: left; }
+.swci th, .swci td { padding: 10px; border-bottom: 1px solid var(--b3-border-color); vertical-align: top; overflow-wrap: anywhere; }
+.swci th, .swci td:nth-child(3), .swci td:nth-child(4) { white-space: nowrap; }
+.swci td small { display: block; margin-top: 4px; color: var(--b3-theme-on-surface); }
+.swci__actions button { margin: 0 4px 4px 0; }
+.swci__form { padding: 14px; margin-top: 14px; border: 1px solid var(--b3-border-color); border-radius: 8px; }
+.swci__fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; margin: 12px 0; }
+.swci__fields label { display: grid; align-content: start; gap: 5px; }
+.swci__fields textarea { min-height: 70px; resize: vertical; }
+.swci footer { justify-content: flex-end; }
+.swci [role="alert"] { color: var(--b3-theme-error); }
+@media(max-width: 600px) {
+  .swci { padding: 12px; }
+  .swci th, .swci td { padding: 8px; }
+}

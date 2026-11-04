@@ -1,0 +1,12 @@
+import {buildTaskDatePatch} from '../src/domain/task-arrangements.js';
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const display=value=>value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'未设置';
+export function mountTaskReschedule(host,{task,date,moveTask,onSaved,onClose,onUncertain}){
+ let disposed=false,busy=false,uncertain=false,preview=null;
+ host.innerHTML=`<form class="swcal__move-form" aria-label="任务改期"><h3>调整“${esc(task.title)}”的日期</h3><label>目标日期<input type="date" name="moveDate" value="${esc(date)}" required></label><div data-move-preview></div><p>保留原时刻和已知时长；提醒时间保持原样，请检查是否合适。</p><p role="alert" hidden></p><footer><button type="button" data-move-cancel>取消</button><button type="submit">确认改期</button></footer></form>`;
+ const form=host.querySelector('form'),input=form.querySelector('input'),error=form.querySelector('[role="alert"]');
+ const show=()=>{try{preview=buildTaskDatePatch(task,input.value);form.querySelector('[data-move-preview]').innerHTML=`<p>开始：${esc(display(task.startAt))} → ${esc(display(preview.startAt??task.startAt))}</p><p>结束：${esc(display(task.endAt))} → ${esc(display(preview.endAt??task.endAt))}</p>`;error.hidden=true;form.querySelector('[type="submit"]').disabled=uncertain;}catch(failure){preview=null;error.textContent=failure.message;error.hidden=false;form.querySelector('[type="submit"]').disabled=true;}};
+ input.addEventListener('change',show);form.querySelector('[data-move-cancel]').addEventListener('click',()=>{if(!busy)onClose();});
+ form.addEventListener('submit',async event=>{event.preventDefault();if(disposed||busy||uncertain||!preview)return;busy=true;form.querySelectorAll('input,button').forEach(node=>node.disabled=true);try{const result=await moveTask(task.id,input.value,{expectedUpdatedAt:task.updatedAt});if(disposed)return;if(result?.record?.id!==task.id||!result?.undoToken)throw Object.assign(Error('改期结果未确认。'),{commitState:'unknown'});onSaved(result);}catch(failure){if(!disposed){uncertain=(failure?.commitState??failure?.data?.commitState??'unknown')!=='none';if(uncertain)onUncertain?.();error.textContent=(failure?.message||'改期失败。')+(uncertain?' 已暂停重复提交，请取消编辑后刷新核查。':'');error.hidden=false;}}finally{busy=false;if(!disposed)form.querySelectorAll('input,button').forEach(node=>node.disabled=uncertain&&node.type==='submit');}});
+ show();return {get busy(){return busy;},dispose(){disposed=true;host.innerHTML='';}};
+}

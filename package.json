@@ -1,0 +1,20 @@
+{
+  "name": "siyuan-workbench",
+  "version": "1.10.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build && vite build --config vite.kernel.config.js",
+    "dev": "vite build --watch",
+    "dev:kernel": "vite build --config vite.kernel.config.js --watch"
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.14",
+    "siyuan": "1.2.9",
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "fflate": "0.8.3"
+  },
+  "license": "MIT"
+}

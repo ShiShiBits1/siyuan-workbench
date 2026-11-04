@@ -1,0 +1,41 @@
+.swrc { --reminder-green:#287763; --reminder-line:var(--b3-border-color,#dfe7e2); --reminder-muted:var(--b3-theme-on-surface,#718078); padding:20px 30px 24px; color:var(--b3-theme-on-background,#25362f); font:13px/1.5 var(--b3-font-family,"Segoe UI",sans-serif); }
+.swrc * { box-sizing:border-box; }
+.swrc button,.swrc input,.swrc select { font:inherit; }
+.swrc button { padding:6px 10px; border:1px solid var(--reminder-line); border-radius:6px; color:inherit; background:var(--b3-theme-background,#fff); cursor:pointer; }
+.swrc button:hover { border-color:var(--reminder-green); color:var(--reminder-green); }
+.swrc button:disabled { cursor:default; opacity:.55; }
+.swrc :is(button,input,select):focus-visible { outline:2px solid var(--reminder-green); outline-offset:2px; }
+.swrc__head { display:flex; align-items:center; justify-content:space-between; gap:15px; }
+.swrc__head h2 { margin:0; font-size:17px; font-weight:650; }
+.swrc__head p { margin:4px 0 12px; color:var(--reminder-muted); font-size:12px; }
+.swrc__notice { margin:0 0 16px; padding:10px 12px; border-left:3px solid #8caf9d; color:var(--reminder-muted); background:var(--b3-theme-surface,#f5f8f5); font-size:11px; }
+.swrc__views { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px; }
+.swrc button[aria-pressed="true"] { color:var(--reminder-green); background:#e5f1eb; border-color:#a7c6b9; }
+.swrc__tools { display:grid; grid-template-columns:minmax(0,1fr) minmax(130px,200px); gap:12px; padding:14px; background:var(--b3-theme-surface,#f5f8f5); border:1px solid var(--reminder-line); border-radius:8px; }
+.swrc label { display:flex; flex-direction:column; gap:5px; min-width:0; font-size:11px; color:var(--reminder-muted); }
+.swrc .swrc__tools :is(input,select),.swrc .swrc__form input { box-sizing:border-box; width:100%; min-width:0; height:35px; border:1px solid var(--reminder-line); border-radius:5px; padding:6px 8px; background:var(--b3-theme-background,#fff); color:var(--b3-theme-on-background,#25362f); }
+.swrc__summary { margin:13px 0; font-size:11px; color:var(--reminder-muted); }
+.swrc__item { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 2px; border-bottom:1px solid var(--reminder-line); }
+.swrc__list { border-top:1px solid var(--reminder-line); }
+.swrc__document { min-width:0; flex:1; }
+.swrc__identity { display:flex; align-items:baseline; gap:9px; }
+.swrc__kind { font-size:10px; color:var(--reminder-muted); flex-shrink:0; }
+.swrc .swrc__title { padding:0; border:0; background:transparent; min-width:0; overflow-wrap:anywhere; font-weight:600; text-align:left; }
+.swrc__time { display:flex; gap:9px; flex-wrap:wrap; margin:7px 0 0; font-size:11px; color:var(--reminder-muted); }
+.swrc__time time { font-variant-numeric:tabular-nums; }
+.swrc__state--due { color:#ad6c37; }
+.swrc__state--upcoming { color:var(--reminder-green); }
+.swrc__actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:6px; }
+.swrc__actions button { padding:4px 7px; font-size:11px; }
+.swrc__form { padding:15px; margin:0 0 16px; border:1px solid #a7c6b9; border-left:3px solid var(--reminder-green); border-radius:7px; }
+.swrc__form h3 { font-size:14px; margin:0; overflow-wrap:anywhere; }
+.swrc__form p { margin:5px 0 12px; font-size:11px; color:var(--reminder-muted); }
+.swrc__form label { max-width:380px; }
+.swrc__form footer { display:flex; gap:7px; justify-content:flex-end; margin-top:14px; }
+.swrc .swrc__primary { color:#fff; background:var(--reminder-green); border-color:var(--reminder-green); }
+.swrc__error,.swrc .swrc__form-error { color:var(--b3-theme-error,#b4483a); overflow-wrap:anywhere; }
+.swrc [hidden] { display:none; }
+.swrc__empty { padding:35px 15px; color:var(--reminder-muted); text-align:center; }
+.swrc__empty strong { color:var(--b3-theme-on-background,#25362f); }
+@media(max-width:720px) { .swrc { padding:17px; }.swrc__item { align-items:flex-start; flex-direction:column; }.swrc__actions { align-self:flex-end; }.swrc__tools { grid-template-columns:minmax(0,1fr) 140px; } }
+@media(max-width:440px) { .swrc__tools { grid-template-columns:1fr; } }

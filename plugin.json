@@ -1,0 +1,32 @@
+{
+  "name": "siyuan-workbench",
+  "author": "ShiShiBits",
+  "url": "https://github.com/ShiShiBits1/siyuan-workbench",
+  "version": "1.10.1",
+  "minAppVersion": "3.8.9",
+  "backends": ["all"],
+  "frontends": ["all"],
+  "kernels": ["all"],
+  "disabledInPublish": true,
+  "icon": "icon.png",
+  "preview": "preview.png",
+  "funding": {
+    "links": [
+      {"label": "支付宝打赏", "url": "https://raw.githubusercontent.com/ShiShiBits1/siyuan-workbench/main/images/support-alipay.jpg"},
+      {"label": "微信赞赏", "url": "https://raw.githubusercontent.com/ShiShiBits1/siyuan-workbench/main/images/support-wechat.png"}
+    ]
+  },
+  "displayName": {
+    "default": "SiYuan Workbench",
+    "zh-CN": "思源工作台"
+  },
+  "description": {
+    "default": "A native workbench for tasks, events, notes and Agent workflows.",
+    "zh-CN": "在思源笔记中管理任务、日程、笔记和 Agent 工作流的原生工作台。"
+  },
+  "readme": {
+    "default": "README.md",
+    "zh-CN": "README.zh-CN.md"
+  },
+  "keywords": ["工作台", "待办", "日程", "任务", "笔记"]
+}

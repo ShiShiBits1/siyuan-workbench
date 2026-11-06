@@ -12,3 +12,25 @@
 @media(max-width:560px){.swcal__fields{grid-template-columns:1fr}.swcal__event-form{padding:12px}}
 
 .swcal__move-form{padding:16px;border:1px solid var(--b3-border-color);border-radius:8px;margin:16px 0}.swcal__move-form h3{margin-top:0}.swcal__move-form footer{display:flex;gap:8px}.swcal__move-form p{line-height:1.6}.swcal__move-form [role="alert"]{color:var(--b3-card-error-color,#b3261e)}.swcal__undo:not(:empty){padding:12px 0}.swcal__record[draggable="true"]{cursor:grab}
+.swcal { container-type: inline-size; container-name: workbench-calendar; }
+.swcal__layout { display: grid; grid-template-columns: minmax(240px,300px) minmax(0,1fr); gap: 20px; align-items: start; }
+.swcal__sidebar { min-width: 0; padding: 16px; border: 1px solid var(--cal-line); border-radius: 12px; background: var(--b3-theme-background,#fff); }
+.swcal__range-label { display: grid; gap: 6px; margin-bottom: 18px; }
+.swcal__range-label select { width: 100%; min-width: 0; font: inherit; color: inherit; background: var(--b3-theme-background,#fff); border: 1px solid var(--cal-line); border-radius: 6px; padding: 7px; }
+.swcal__range-label select:focus-visible { outline: 2px solid var(--cal-green); outline-offset: 2px; }
+.swcal__sidebar .swcal__agenda { margin-top: 0; }
+.swcal__sidebar .swcal__record { border-radius: 8px; padding: 10px; margin-top: 10px; }
+.swcal__range { color: var(--b3-theme-on-surface,#718078); font-size: 12px; }
+.swcal__content { min-width: 0; overflow-x: auto; }
+.swcal__content .swcal__grid { min-width: 560px; }
+@container workbench-calendar (max-width: 920px) {
+  .swcal__layout { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 760px) {
+  .swcal__layout { grid-template-columns: minmax(0,1fr); }
+  .swcal__sidebar { padding: 12px; }
+}
+
+.swcal__backlog summary { cursor: pointer; font-weight: 600; }
+.swcal__backlog summary:focus-visible { outline: 2px solid var(--cal-green); outline-offset: 3px; }
+.swcal__backlog-content { margin-top: 12px; }

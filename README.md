@@ -6,7 +6,9 @@ Tasks, projects, calendar, notes and Agent workflows inside SiYuan's document ar
 
 ![Workbench preview](preview.png)
 
-Version **1.10.5** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+Version **1.10.6** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+
+The full calendar shows the selected day's agenda on the left and the calendar on the right. Switch to upcoming events for today and the next six days. Use New event to schedule the selected day. The small calendar's Today button returns to the current month and selects today.
 
 Delete an assignment from its detail page after confirming the scope. This removes its document and any notes inside it while retaining linked tasks and deliverable documents. Cancel active assignments first and reconcile pending results before deletion.
 

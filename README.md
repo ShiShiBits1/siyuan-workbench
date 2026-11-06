@@ -6,7 +6,9 @@ Tasks, projects, calendar, notes and Agent workflows inside SiYuan's document ar
 
 ![Workbench preview](preview.png)
 
-Version **1.12.0** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+Version **1.12.1** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+
+Agent tool results and completed or stopped requests refresh the workbench after SiYuan commits its index. Concurrent notifications retain a final refresh without reloading the plugin or replacing drafts. Native documents appear in the refreshed document tree; the managed notes list keeps its existing scope.
 
 A floating capsule at the bottom of the workbench keeps native Agent chat available while the page scrolls. History opens upward without resizing the main workspace. Send requests, attach files and review tool approvals from the same session; switching business pages preserves the draft.
 

@@ -206,7 +206,7 @@ export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptio
   cleanup.openAgentJob = id => select('jobs') && controllers.get('jobs')?.selectJob?.(id);
   cleanup.refreshViews = () => {
     if (disposed) return Promise.resolve([]);
-    const operations=[()=>cleanupDay.refresh?.(),()=>library?.refresh()];
+    const operations=[()=>cleanupDay.refresh?.(),()=>library?.refresh(),()=>cleanupTree?.refresh?.()];
     for (const [id,controller] of controllers) if(views.find(view=>view.id===id)?.autoRefresh!==false)operations.push(()=>controller?.refresh?.());
     return Promise.allSettled(operations.map(operation=>Promise.resolve().then(()=>disposed?undefined:operation())));
   };

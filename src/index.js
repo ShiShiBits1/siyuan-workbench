@@ -63,6 +63,7 @@ import {mountSupportDevelopment} from '../ui/support-development.js';
 import {mountProjectPage} from '../ui/project-page.js';
 import {createReminderClient} from '../ui/reminder-client.js';
 import {createNotebookLoader, createSerialWriter} from '../ui/notebook-loader.js';
+import {createWorkspaceRefreshScheduler} from './workspace-refresh.js';
 import {createNativeWorkbenchHost,createNotebookSettingControl,hasWorkbenchDraft,saveCheckedData} from '../ui/workbench-host.js';
 import '../ui/workbench.css';
 import '../ui/calendar-day-preview.css';
@@ -91,7 +92,7 @@ import '../ui/support-development.css';
 
 const SETTINGS_KEY = 'workbench-settings.json';
 const POMODORO_KEY = 'workbench-pomodoro.json';
-const WORKBENCH_VERSION = '1.12.0';
+const WORKBENCH_VERSION = '1.12.1';
 
 export default class SiYuanWorkbench extends Plugin {
     async onload() {
@@ -104,6 +105,7 @@ export default class SiYuanWorkbench extends Plugin {
         this.agentBusy = false;
         this.notebookLoaders = new Set();
         this.workspaceRefreshers = new Set();
+        this.workspaceRefreshScheduler = null;
         this.workspaceClockRefreshers = new Set();
         this.dockContextRefreshers = new Set();
         this.calendarControllers = new Set();
@@ -366,6 +368,7 @@ export default class SiYuanWorkbench extends Plugin {
 
     async onunload() {
         this.disposed = true;
+        this.workspaceRefreshScheduler?.dispose();
         this.categoryOrganizer?.dispose();this.categoryOrganizer=null;
         this.supportDevelopment?.dispose();this.supportDevelopment=null;
         this.agentSyncGeneration += 1;
@@ -427,7 +430,16 @@ export default class SiYuanWorkbench extends Plugin {
 
     notifyWorkspaceChange() {
         if(this.disposed)return;
-        return Promise.allSettled([...(this.workspaceRefreshers||[])].map(async refresh=>refresh()));
+        if(!this.workspaceRefreshScheduler)this.workspaceRefreshScheduler=createWorkspaceRefreshScheduler({
+            isDisposed:()=>this.disposed,
+            flush:async()=>{
+                const result=await fetchSyncPost('/api/sqlite/flushTransaction',{},undefined,false);
+                if(result?.code!==0)throw new Error(result?.msg||'思源尚未确认写入索引，工作台刷新未完成');
+            },
+            refresh:()=>Promise.allSettled([...(this.workspaceRefreshers||[])].map(async refresh=>refresh())),
+            onError:error=>showMessage(error?.message||'工作台刷新未完成，请稍后重试'),
+        });
+        return this.workspaceRefreshScheduler.notify();
     }
 
     assertWorkspaceAvailable(notebookId) {

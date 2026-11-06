@@ -77,7 +77,7 @@ export function mountProjects(container, {loadBinding, saveBinding, createDataba
   const submit = createForm.querySelector('[type="submit"]');
   const action = name => $(`[data-project-action="${name}"]`);
   let binding = null, snapshot = null, editor = '', recoveryId = '';
-  let busy = false, disposed = false, loaded = false;
+  let busy = false, disposed = false, loaded = false, refreshPending = false;
   let preferences = initialPreferences(), selectedLane = '', dragProject = null, fieldDraft = null;
   const locale = new Intl.Collator('zh-CN', {numeric:true});
 
@@ -103,6 +103,7 @@ export function mountProjects(container, {loadBinding, saveBinding, createDataba
       action('recovery').hidden = true;
     }
     updateControls();
+    if(refreshPending&&!busy&&!editor&&!fieldDraft)void refresh();
   }
 
   function updateControls() {
@@ -295,6 +296,7 @@ export function mountProjects(container, {loadBinding, saveBinding, createDataba
         if (!snapshot) $('.swb-projects__status').textContent = '';
         busy = false;
         updateControls();
+        if(refreshPending&&!editor&&!fieldDraft){refreshPending=false;void refresh();}
       }
     }
   }
@@ -307,7 +309,9 @@ export function mountProjects(container, {loadBinding, saveBinding, createDataba
   }
 
   function refresh() {
-    if (editor || fieldDraft) return;
+    if(disposed)return;
+    if (busy || editor || fieldDraft) {refreshPending=true;return;}
+    refreshPending=false;
     return run(async () => {
       if (!loaded) {
         const result = await loadBinding();
@@ -424,6 +428,7 @@ export function mountProjects(container, {loadBinding, saveBinding, createDataba
       button.dataset.projectId === project.id && button.dataset.projectField === field
     );
     (trigger?.isConnected ? trigger : replacement || $('[data-project-layout][aria-pressed="true"]'))?.focus();
+    if(refreshPending)void refresh();
   }
 
   async function saveField() {

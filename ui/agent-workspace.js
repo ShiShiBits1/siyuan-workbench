@@ -175,10 +175,15 @@ export function mountAgentWorkspace(container,options={}) {
       try {void Promise.resolve(options.confirm(card.id,false)).catch(()=>{});} catch {/* Best effort rejection must not prevent abort/cleanup. */}
     }
   }
-  function stopRun() {
+  function notifyRecords(reason) {
+    if(disposed)return;
+    try{void Promise.resolve(options.onRecordChange?.({reason})).catch(()=>{});}catch{/* Refresh cannot change a native operation result. */}
+  }
+  function stopRun(refresh=true) {
     const run=active;if(!run)return;
     ++generation;active=null;cancelPending(run);run.controller.abort();
     if(!disposed){controls(false);status.textContent=run.uploading?'已停止上传。已上传的文件可能保留在思源资源中。':'已停止本次请求；已经执行的操作会保留。';}
+    if(refresh&&run.started)notifyRecords('stopped');
   }
   function approval(run,data) {
     if(typeof data.confirmID!=='string'||!data.confirmID)throw new Error('原生审批缺少标识，已停止本次请求');
@@ -223,6 +228,7 @@ export function mountAgentWorkspace(container,options={}) {
       const user=entry('user',message);
       renderSentFiles(user.node,prepared?.attachments||[]);
       status.textContent='正在连接思源 Agent…';
+      run.started=true;
       const result=await options.chat({message:message+(prepared?.messageSuffix||''),...(sessionID?{sessionID}:{})},{signal:run.controller.signal,onEvent:({event:kind,data={}})=>{
         if(!current())return;
         if(kind==='content') {run.assistant ||= entry('assistant');run.assistant.append(data.token||'');status.textContent='正在回复…';}
@@ -243,7 +249,7 @@ export function mountAgentWorkspace(container,options={}) {
         else if(kind==='tool_call'){const row=entry('tool',`${toolTitle(data.name)}：执行中`);run.tools.set(data.callID,row);status.textContent='正在调用工具…';}
         else if(kind==='tool_result'){
           const row=run.tools.get(data.callID)||entry('tool');row.setText(`${toolTitle(data.name)}\n${data.result??''}`);
-          try{void Promise.resolve(options.onRecordChange?.()).catch(()=>{});}catch{/* A refresh callback must not alter the native operation result. */}
+          notifyRecords('tool-result');
         }
         else if(kind==='error'||kind==='interrupted'){run.failure=new Error(data.message||'原生 Agent 请求中断');showError(run.failure.message);}
       }});
@@ -260,6 +266,7 @@ export function mountAgentWorkspace(container,options={}) {
       status.textContent = '草稿已保留';
     }finally{
       if(current()){cancelPending(run);active=null;controls(false);}
+      if(run.started)notifyRecords('settled');
     }
   }
   function click(event) {
@@ -272,5 +279,5 @@ export function mountAgentWorkspace(container,options={}) {
     }
   }
   root.addEventListener('click',click);form.addEventListener('submit',submit);
-  return {dispose(){if(disposed)return;const hadRun=Boolean(active);stopRun();if(!hadRun)notifyBusy(false);disposed=true;++generation;files=[];renderFiles();fileInput?.removeEventListener('change',selectFiles);input.removeEventListener('paste',pasteImages);input.removeEventListener('input',resizeInput);root.removeEventListener('click',click);form.removeEventListener('submit',submit);}};
+  return {dispose(){if(disposed)return;const hadRun=Boolean(active);stopRun(false);if(!hadRun)notifyBusy(false);disposed=true;++generation;files=[];renderFiles();fileInput?.removeEventListener('change',selectFiles);input.removeEventListener('paste',pasteImages);input.removeEventListener('input',resizeInput);root.removeEventListener('click',click);form.removeEventListener('submit',submit);}};
 }

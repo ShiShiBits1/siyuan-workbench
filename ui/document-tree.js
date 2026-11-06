@@ -13,6 +13,8 @@ export function mountDocumentTree(host, {notebookId, list, open, create, onOpen}
   let context;
   let busy = false;
   let draft = null;
+  const loads = new Map();
+  let refreshing = null, refreshPending = false;
 
   host.innerHTML = `<button type="button" class="swb-tree__root" aria-expanded="false">文档树</button>
     <div class="swb-tree__branch" hidden></div>
@@ -57,27 +59,56 @@ export function mountDocumentTree(host, {notebookId, list, open, create, onOpen}
     }
   }
 
-  async function load(branch, path) {
-    if (branch.dataset.loading === 'true') return;
+  function load(branch, path, keepContents = false) {
+    if (loads.has(branch)) return loads.get(branch);
     branch.dataset.loading = 'true';
-    branch.textContent = '正在加载…';
-    try {
-      const children = await list(path);
-      if (disposed || !branch.isConnected) return;
-      branch.replaceChildren(...children.map(item => renderNode(item, branch, path)));
-      branch.dataset.loaded = 'true';
-      if (!children.length) branch.textContent = '没有子文档';
-    } catch (failure) {
-      if (disposed) return;
-      const retry = doc.createElement('button');
-      retry.type = 'button';
-      retry.textContent = '加载失败，重试';
-      retry.title = failure?.message || '';
-      retry.onclick = () => void load(branch, path);
-      branch.replaceChildren(retry);
-    } finally {
-      delete branch.dataset.loading;
-    }
+    if(!keepContents)branch.textContent = '正在加载…';
+    const operation=Promise.resolve().then(async()=>{
+      try {
+        const children = await list(path);
+        if (disposed || !branch.isConnected) return;
+        if(keepContents&&(busy||dialog.open)){refreshPending=true;return;}
+        branch.replaceChildren(...children.map(item => renderNode(item, branch, path)));
+        branch.dataset.loaded = 'true';
+        if (!children.length) branch.textContent = '没有子文档';
+      } catch (failure) {
+        if (disposed) return;
+        const retry = doc.createElement('button');
+        retry.type = 'button';
+        retry.textContent = '加载失败，重试';
+        retry.title = failure?.message || '';
+        retry.onclick = () => void load(branch, path);
+        branch.replaceChildren(retry);
+      } finally {
+        delete branch.dataset.loading;
+        loads.delete(branch);
+      }
+    });
+    loads.set(branch,operation);
+    return operation;
+  }
+
+  function refresh() {
+    if(disposed)return Promise.resolve();
+    refreshPending=true;
+    if(busy||dialog.open)return Promise.resolve();
+    if(refreshing)return refreshing;
+    refreshing=Promise.resolve().then(async()=>{
+      try {
+        while(refreshPending&&!disposed&&!busy&&!dialog.open) {
+          refreshPending=false;
+          // Initial expansion may already be loading. Wait, then read again so
+          // its earlier snapshot cannot swallow the new-document notification.
+          while(loads.size&&!disposed)await Promise.allSettled([...loads.values()]);
+          if(disposed)break;
+          if(busy||dialog.open){refreshPending=true;break;}
+          if(rootBranch.hidden){delete rootBranch.dataset.loaded;continue;}
+          await load(rootBranch,'/',true);
+          while(loads.size&&!disposed)await Promise.allSettled([...loads.values()]);
+        }
+      } finally {refreshing=null;}
+    });
+    return refreshing;
   }
 
   function toggle(button, branch, id, path) {
@@ -123,7 +154,9 @@ export function mountDocumentTree(host, {notebookId, list, open, create, onOpen}
     disclosure.onclick = () => toggle(disclosure, branch, item.id, item.path);
     button.onclick = () => void openDocument(item.id).catch(failure => { feedback.textContent = failure.message; });
     more.onclick = () => openMenu(more, item, parent, parentPath);
-    if (item.hasChildren && expanded.has(item.id)) toggle(disclosure, branch, item.id, item.path);
+    if (item.hasChildren && expanded.has(item.id)) {
+      disclosure.setAttribute('aria-expanded','true');branch.hidden=false;void load(branch,item.path);
+    }
     return node;
   }
 
@@ -205,11 +238,13 @@ export function mountDocumentTree(host, {notebookId, list, open, create, onOpen}
       busy = false;
       delete host.dataset.treeDraft;
       for (const button of form.querySelectorAll('button')) button.disabled = false;
+      if(refreshPending)void refresh();
     }
   };
   title.addEventListener('input', () => { host.dataset.treeDraft = String(Boolean(title.value.trim())); });
-  dialog.addEventListener('close', () => { delete host.dataset.treeDraft; title.readOnly = false; });
+  dialog.addEventListener('close', () => { delete host.dataset.treeDraft; title.readOnly = false;if(refreshPending)void refresh(); });
   const dispose = () => { disposed = true; if (dialog.open) dialog.close(); host.replaceChildren(); };
   dispose.select = select;
+  dispose.refresh = refresh;
   return dispose;
 }

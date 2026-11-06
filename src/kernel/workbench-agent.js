@@ -4,6 +4,7 @@ import {withTaskHistory} from '../domain/task-history.js';
 import {formatWorkbenchRecordMarkdown, parseWorkbenchRecordMarkdown} from '../domain/workbench-markdown.js';
 import {completeTaskCode} from './task-code-update.js';
 import {assertWorkbenchLocation,ensureCategoryFolder,categoryFromMarker,assertCategoryFolder} from '../data/category-location.js';
+import {createWorkbenchProjectAgentService,LIST_PROJECTS_CAPABILITY,GET_PROJECT_CAPABILITY,CREATE_PROJECT_CAPABILITY,UPDATE_PROJECT_CAPABILITY,listProjectsConfig,getProjectConfig,createProjectConfig,updateProjectConfig} from './workbench-project-agent.js';
 
 export const LIST_TODAY_TASKS_CAPABILITY = 'workbench_list_today_tasks';
 export const CREATE_TASK_CAPABILITY = 'workbench_create_task';
@@ -565,6 +566,18 @@ export function createWorkbenchAgentService(siyuan, options = {}) {
         return payload;
     }
 
+    const projectService = createWorkbenchProjectAgentService({
+        post,
+        fetcher:(path,request)=>siyuan.client.fetch(path,request),
+        storage:siyuan.storage,
+        newID:makeID,
+        requireNotebook:async()=>{
+            const notebookId=await requireConfiguredNotebook();
+            await assertNotebookAvailable(notebookId);
+            return notebookId;
+        },
+    });
+
     async function onload() {
         await loadSettings();
         await siyuan.rpc.bind(SET_NOTEBOOK_RPC, handleSetNotebook, '同步工作台前端选择的笔记本 ID');
@@ -574,6 +587,10 @@ export function createWorkbenchAgentService(siyuan, options = {}) {
             [CREATE_TASK_CAPABILITY, createTaskConfig, handleCreateTask],
             [CREATE_EVENT_CAPABILITY, createEventConfig, handleCreateEvent],
             [COMPLETE_TASK_CAPABILITY, completeTaskConfig, handleCompleteTask],
+            [LIST_PROJECTS_CAPABILITY,listProjectsConfig,projectService.handleListProjects],
+            [GET_PROJECT_CAPABILITY,getProjectConfig,projectService.handleGetProject],
+            [CREATE_PROJECT_CAPABILITY,createProjectConfig,projectService.handleCreateProject],
+            [UPDATE_PROJECT_CAPABILITY,updateProjectConfig,projectService.handleUpdateProject],
         ];
         for (const [name, config, handler] of capabilities) {
             await siyuan.agent.registerCapability(name, config, handler);
@@ -600,6 +617,7 @@ export function createWorkbenchAgentService(siyuan, options = {}) {
         handleCreateEvent,
         handleCompleteTask,
         handleSetNotebook,
+        ...projectService,
     };
 }
 

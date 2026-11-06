@@ -6,7 +6,7 @@ Tasks, projects, calendar, notes and Agent workflows inside SiYuan's document ar
 
 ![Workbench preview](preview.png)
 
-Version **1.11.2** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+Version **1.12.0** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
 
 A floating capsule at the bottom of the workbench keeps native Agent chat available while the page scrolls. History opens upward without resizing the main workspace. Send requests, attach files and review tool approvals from the same session; switching business pages preserves the draft.
 
@@ -19,6 +19,8 @@ Delete an assignment from its detail page after confirming the scope. This remov
 Cancel a running assignment from the assignment page and keep previously saved work. For interrupted assignments, check for an existing deliverable to send it for review. Selected assignments use rounded cards with wrapping titles.
 
 Answer Agent questions in the sidebar or in the workbench to continue the same request. Workbench tools let the Agent list today's tasks, create or complete a task, and create an event. Attachments are shared as SiYuan resource references. Reading their contents requires a suitable enabled tool. If a connection fails, check any operations already performed before sending again.
+
+Project tools also list projects, read a selected project's native document, create a project and update one property at a time. They use the database already connected on the Projects page. Enable the desired tools in SiYuan Agent settings; writes follow its approval policy. Updates require the revision returned by a query and reject conflicting changes. Project document reading is capped at 10,000 characters and does not follow attachments or references.
 
 The reminders sidebar hides completed tasks while retaining scheduled events. The full reminder center keeps completed-task history; reopening a task and refreshing restores its reminder in the sidebar.
 

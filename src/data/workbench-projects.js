@@ -93,7 +93,7 @@ function plainValue(value) {
     return typeof value?.text?.content === 'string' ? value.text.content : '';
 }
 
-export function createWorkbenchProjects({notebookId, post, isReadOnly = () => false}) {
+export function createWorkbenchProjects({notebookId, post, isReadOnly = () => false, newID = newNodeID}) {
     if (!isValidNodeID(notebookId) || typeof post !== 'function') throw new Error('项目笔记本配置无效');
     const staged = new Map();
     let creating = false;
@@ -271,7 +271,7 @@ export function createWorkbenchProjects({notebookId, post, isReadOnly = () => fa
         try {
             const {fresh} = await readBinding(binding);
             await assertWritable(fresh);
-            documentId = draft.documentId || newNodeID();
+            documentId = draft.documentId || newID();
             const parentID = fresh.documentId;
             const stagedKey = `${fresh.avId}:${fresh.blockId}:${parentID}:${title}`;
             if (draft.documentId && staged.get(documentId) !== stagedKey) throw new Error('无法确认待重试的项目文档');

@@ -12,6 +12,10 @@ const icon=name=>{
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const templates={today:'请查询当前工作台笔记本今天的任务，整理优先处理顺序和需要注意的截止时间。先只读梳理，不修改记录。',week:'请根据我提供的信息协助安排本周工作。先列出建议，确认后再按思源的审批设置执行创建或修改。\n\n本周目标：',meeting:'请从下面的会议记录提炼待办建议，列出标题、负责人线索与时间信息；不确定的信息标记待确认。先给出建议，不立即写入。\n\n会议记录（请自行粘贴）：'};
 function toolTitle(name='') {
+  if(name.includes('list_projects'))return '查询工作台项目';
+  if(name.includes('get_project'))return '查看项目正文';
+  if(name.includes('create_project'))return '创建项目';
+  if(name.includes('update_project'))return '更新项目属性';
   if(name.includes('create_task'))return '创建任务';
   if(name.includes('create_event'))return '创建日程';
   if(name.includes('complete_task'))return '完成任务';

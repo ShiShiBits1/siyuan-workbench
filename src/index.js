@@ -91,7 +91,7 @@ import '../ui/support-development.css';
 
 const SETTINGS_KEY = 'workbench-settings.json';
 const POMODORO_KEY = 'workbench-pomodoro.json';
-const WORKBENCH_VERSION = '1.11.2';
+const WORKBENCH_VERSION = '1.12.0';
 
 export default class SiYuanWorkbench extends Plugin {
     async onload() {

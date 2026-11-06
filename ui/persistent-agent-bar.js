@@ -12,7 +12,7 @@ export function mountPersistentAgentBar(host, agentOptions = {}) {
 
   let disposed = false;
   let expanded = false;
-  let log, templates, hint, toggle, input;
+  let log, templates, hint, toggle, input, header;
 
   function setExpanded(value) {
     if (disposed) return;
@@ -21,8 +21,11 @@ export function mountPersistentAgentBar(host, agentOptions = {}) {
     if (log) log.hidden = !value;
     if (templates) templates.hidden = !value;
     if (hint) hint.hidden = !value;
+    if (header) header.hidden = !value;
     if (toggle) {
-      toggle.textContent = value ? '收起对话' : '展开对话';
+      toggle.textContent = value ? '收起' : '对话';
+      toggle.setAttribute('aria-label', value ? '收起对话' : '展开对话');
+      toggle.title = value ? '收起对话' : '展开对话';
       toggle.setAttribute('aria-expanded', String(value));
     }
   }
@@ -49,11 +52,11 @@ export function mountPersistentAgentBar(host, agentOptions = {}) {
   templates = root.querySelector('.swa__templates');
   hint = root.querySelector('.swa__hint');
   input = root.querySelector('textarea');
-  input.placeholder = '描述要完成的工作，或让助手创建任务…';
+  input.placeholder = '想让 AI 做什么？';
   input.setAttribute('aria-label', '常驻 AI 消息');
   log.id = 'swb-ai-history-' + (++nextBarID);
 
-  const header = root.querySelector('.swa__head');
+  header = root.querySelector('.swa__head');
   const title = header.querySelector('div');
   title.replaceChildren();
   const name = doc.createElement('strong');
@@ -63,12 +66,16 @@ export function mountPersistentAgentBar(host, agentOptions = {}) {
   notebook.className = 'swb-ai-bar__context';
   notebook.textContent = agentOptions.notebookName || '当前笔记本';
   title.append(notebook);
+  const status = root.querySelector('.swa__status');
+  status.classList.add('swb-ai-bar__status');
+  title.append(status);
   toggle = doc.createElement('button');
   toggle.type = 'button';
   toggle.setAttribute('aria-controls', log.id);
   const toggleHistory = () => setExpanded(!expanded);
   toggle.addEventListener('click', toggleHistory);
-  header.insertBefore(toggle, header.querySelector('[data-agent-action="new"]'));
+  toggle.className = 'swb-ai-bar__toggle';
+  root.querySelector('.swa__composer').prepend(toggle);
   setExpanded(false);
 
   return {

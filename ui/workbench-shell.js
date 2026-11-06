@@ -64,6 +64,24 @@ export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptio
   }:undefined;
   const cleanupDay = mountDay(day, {...dayOptions,onCreateNote:createNote});
   const assistant=agentOptions?mountPersistentAgentBar(container.querySelector('.swb-shell__assistant'),agentOptions):null;
+  const assistantHost = container.querySelector('.swb-shell__assistant');
+  const main = container.querySelector('.swb-shell__main');
+  // Only the input needs end-of-page clearance; expanded history floats over the page.
+  const updateAssistantSpace = () => {
+    if (disposed || !assistantHost) return;
+    const composerHeight = assistantHost.querySelector('.swa__composer')?.getBoundingClientRect().height;
+    if (composerHeight > 0) main.style.setProperty('--swb-assistant-clearance', Math.ceil(composerHeight + 40) + 'px');
+    const height = main.getBoundingClientRect().height;
+    if (height > 0) main.style.setProperty('--swb-assistant-max-height', Math.max(0, height - 32) + 'px');
+  };
+  const ResizeObserver = container.ownerDocument.defaultView?.ResizeObserver;
+  const assistantObserver = assistantHost && ResizeObserver ? new ResizeObserver(updateAssistantSpace) : null;
+  if (assistantObserver) {
+    assistantObserver.observe(main);
+    assistantObserver.observe(assistantHost);
+    assistantObserver.observe(assistantHost.querySelector('.swa__composer'));
+  }
+  updateAssistantSpace();
   const cleanupTree = documentTree && mountDocumentTree(container.querySelector('.swb-tree'), {...documentTree,onOpen:()=>setNavigation(false)});
 
   function select(view) {
@@ -168,6 +186,7 @@ export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptio
       else controller?.dispose?.();
     }
     cleanupDay();
+    assistantObserver?.disconnect();
     assistant?.dispose();
     container.innerHTML = '';
   };

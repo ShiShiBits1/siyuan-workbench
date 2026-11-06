@@ -116,7 +116,9 @@ export function mountRecordPage(host, {
     const right = Math.min(viewportWidth, rect.right || viewportWidth);
     const boundary = host.closest('.swb-host')?.getBoundingClientRect();
     const top = Math.max(0, rect.top || 0, boundary?.top || 0);
-    const bottom = Math.min(viewportHeight, rect.bottom || viewportHeight, boundary?.bottom || viewportHeight);
+    const assistantRect = host.querySelector('.swb-shell__assistant')?.getBoundingClientRect();
+    const assistantTop = assistantRect?.height > 0 ? assistantRect.top - 12 : viewportHeight;
+    const bottom = Math.min(viewportHeight, rect.bottom || viewportHeight, boundary?.bottom || viewportHeight, assistantTop);
     const available = Math.max(0, right - left);
     const width = available <= 760 ? available : Math.min(720, Math.max(440, available * .66));
     Object.assign(frame.style, {
@@ -298,6 +300,8 @@ export function mountRecordPage(host, {
   observer?.observe(host);
   const bodyBoundary=host.querySelector('.swb-shell__body');
   if(bodyBoundary)observer?.observe(bodyBoundary);
+  const assistantBoundary=host.querySelector('.swb-shell__assistant');
+  if(assistantBoundary)observer?.observe(assistantBoundary);
   return {
     open, close, isOpen: () => visible,
     dispose() {

@@ -46,9 +46,9 @@
 .swb-host:has(.swb-shell--assistant) > .swb-workspace { flex:1; min-height:0; overflow:hidden; }
 .swb-shell--assistant { height:100%; min-height:0; }
 .swb-shell--assistant .swb-shell__layout { height:100%; min-height:0; box-sizing:border-box; }
-.swb-shell--assistant .swb-shell__main { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
-.swb-shell--assistant .swb-shell__body { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
-.swb-shell--assistant .swb-shell__assistant { flex:none; min-width:0; }
+.swb-shell--assistant .swb-shell__main { position:relative; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.swb-shell--assistant .swb-shell__body { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding-bottom:var(--swb-assistant-clearance,100px); scroll-padding-bottom:var(--swb-assistant-clearance,100px); box-sizing:border-box; }
+.swb-shell--assistant .swb-shell__assistant { position:absolute; z-index:7; inset:auto 16px 16px; width:calc(100% - 32px); max-width:900px; margin-inline:auto; min-width:0; }
 .swb-shell--assistant .swb-shell__tabs { position:static; max-height:100%; }
 @container workbench (max-width: 760px) {
   .swb-shell__layout { position:relative; grid-template-columns:minmax(0, 1fr); align-content:start; padding:8px; }

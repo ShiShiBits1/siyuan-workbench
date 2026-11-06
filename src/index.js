@@ -90,7 +90,7 @@ import '../ui/support-development.css';
 
 const SETTINGS_KEY = 'workbench-settings.json';
 const POMODORO_KEY = 'workbench-pomodoro.json';
-const WORKBENCH_VERSION = '1.10.6';
+const WORKBENCH_VERSION = '1.11.0';
 
 export default class SiYuanWorkbench extends Plugin {
     async onload() {
@@ -621,6 +621,7 @@ export default class SiYuanWorkbench extends Plugin {
                     onOverviewSelect: key => key==='awaitingReviewJobs'?cleanup?.selectAgentJobsState('awaiting_review'):key==='todayEvents'?this.openCalendar(localDate(new Date())):cleanup?.selectPlannerView({todayTasks:'today',overdueTasks:'overdue',unscheduledTasks:'unscheduled'}[key],{unfinishedOnly:true}),
                     onOpenCalendar: date => this.openCalendar(date),
                     onDelegateTask:delegate,
+                    onOpenAgentJob:id=>cleanup?.openAgentJob(id),
                     onSave: recordActions.saveRecord,
                     onOpenTask:openTaskPage,
                     onCreateProject:async()=>{

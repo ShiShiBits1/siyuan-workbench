@@ -177,6 +177,7 @@ export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptio
   cleanup.selectPlannerView = (view,options) => select('planner') && (controllers.get('planner')?.setView?.(view,options) ?? false);
   cleanup.createAgentJob = task => select('jobs') && controllers.get('jobs')?.createFromTask?.(task);
   cleanup.selectAgentJobsState = state => select('jobs') && controllers.get('jobs')?.selectState?.(state);
+  cleanup.openAgentJob = id => select('jobs') && controllers.get('jobs')?.selectJob?.(id);
   cleanup.refreshViews = () => {
     if (disposed) return Promise.resolve([]);
     const operations=[()=>cleanupDay.refresh?.(),()=>library?.refresh()];

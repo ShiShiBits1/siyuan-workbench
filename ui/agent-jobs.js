@@ -185,5 +185,14 @@ export function mountAgentJobs(container,options={}){
   function input(event){if(!detail.contains(event.target))return;const form=detail.querySelector('form');if(event.target.name==='materialSearch'){const query=event.target.value.trim().toLowerCase();detail.querySelectorAll('[data-material-title]').forEach(node=>node.hidden=!node.dataset.materialTitle.includes(query));return;}if(form){form.dataset.jobDraft='true';const chosen=[...form.querySelectorAll('[name="materialIds"]')].filter(node=>node.checked);form.querySelector('.swj__scope-live').textContent=`已选择 ${chosen.length} 篇文档 · 粘贴材料 ${form.querySelector('[name="pastedMaterial"]').value.length} 字；保存草稿不会调用模型。`;}else if(event.target.matches('textarea'))event.target.dataset.jobDraft=String(Boolean(event.target.value));}
   const change=event=>{if(event.target===filter)showList();else{if(event.target.name==='template')detail.querySelector('.swj__weekly').hidden=event.target.value!=='weekly';input(event);}};
   root.addEventListener('click',click);root.addEventListener('submit',submit);root.addEventListener('input',input);root.addEventListener('change',change);const initialReady=refresh();
-  return {refresh,async createFromTask(task){await initialReady;return showEditor(task);},selectState(value){if(disposed)return;filter.value=value;showList();},dispose(){if(disposed)return;disposed=true;++generation;++previewGeneration;active?.controller.abort();batchPanel?.dispose();try{options.onBusyChange?.(false);}catch{}root.removeEventListener('click',click);root.removeEventListener('submit',submit);root.removeEventListener('input',input);root.removeEventListener('change',change);}};
+  return {refresh,async selectJob(id){
+    await initialReady;
+    if(disposed||busy||uncertain||dirty())return false;
+    await refresh();
+    if(disposed||busy||uncertain||dirty())return false;
+    const job=jobs.find(item=>item.id===id);
+    if(!job)throw new Error('委托已删除或当前不可读，请刷新首页');
+    editor=false;filter.value='';showDetail(job);
+    return true;
+  },async createFromTask(task){await initialReady;return showEditor(task);},selectState(value){if(disposed)return;filter.value=value;showList();},dispose(){if(disposed)return;disposed=true;++generation;++previewGeneration;active?.controller.abort();batchPanel?.dispose();try{options.onBusyChange?.(false);}catch{}root.removeEventListener('click',click);root.removeEventListener('submit',submit);root.removeEventListener('input',input);root.removeEventListener('change',change);}};
 }

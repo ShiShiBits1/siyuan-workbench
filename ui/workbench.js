@@ -230,6 +230,36 @@ export function mountWorkbench(container, options = {}) {
   }
   if(typeof options.onNotify==='function')setPomodoroNotifier(options.onNotify);
 
+  function briefingTitle() {
+    if (selectedDate !== localDate(overviewNow())) return '查看这一天的工作';
+    const hour = overviewNow().getHours();
+    const greeting = hour >= 5 && hour < 12 ? '早上好' : hour < 18 && hour >= 12 ? '下午好' : '晚上好';
+    const pending = overviewInputs?.jobs?.filter(job => ['awaiting_review','needs_input'].includes(job.state));
+    return pending?.length ? greeting + '，先处理这 ' + pending.length + ' 件事' : greeting + '，开始今天的工作';
+  }
+
+  function briefingHTML() {
+    if (!options.showReviewOverview) return '';
+    const failure = overviewState.error || overviewInputs?.reviewError;
+    if (failure) return `<section class="swb__briefing" aria-label="开工简报"><h2>工作进展</h2><p role="alert">委托读取失败：${escapeHTML(failure)}</p><button data-action="refresh-overview" class="swb__text-button">重新读取</button></section>`;
+    if (!Array.isArray(overviewInputs?.jobs)) return '<section class="swb__briefing" aria-label="开工简报"><p role="status">正在读取委托进展…</p></section>';
+    const jobs = overviewInputs.jobs;
+    const groups = [
+      {title:'等你拍板', limit:2, states:['awaiting_review'], action:'查看并验收', description:job=>'已提交 ' + (job.deliverables?.length || 0) + ' 份成果，等待你确认。'},
+      {title:'需要补资料', limit:1, states:['needs_input'], action:'补充资料', description:job=>job.questions?.[0] || '打开委托，集中补充所需资料。'},
+      {title:'执行与待核查', limit:0, states:['queued','validating','running','failed'], action:'查看并核查', description:job=>job.state === 'failed' ? '上次执行失败，查看原因和已保存成果。' : '上次记录尚未完成，打开核查实际进展。'},
+    ];
+    const content = groups.map(group => {
+      const matching = jobs.filter(job => group.states.includes(job.state));
+      if (!matching.length) return '';
+      const rows = items => items.map(job=>`<article class="swb__briefing-row"><div><strong>${escapeHTML(job.title)}</strong><p>${escapeHTML(group.description(job))}</p></div><button type="button" data-open-agent-job="${escapeHTML(job.id)}" ${typeof options.onOpenAgentJob!=='function'?'disabled':''}>${group.action}</button></article>`).join('');
+      if (group.limit === 0) return `<details class="swb__briefing-group swb__briefing-fold"><summary>${group.title}<span>${matching.length} 项</span></summary>${rows(matching)}</details>`;
+      const remaining = matching.slice(group.limit);
+      return `<section class="swb__briefing-group"><header><h2>${group.title}</h2><span>${matching.length} 项</span></header>${rows(matching.slice(0,group.limit))}${remaining.length?`<details class="swb__briefing-fold"><summary>展开其余 ${remaining.length} 项</summary>${rows(remaining)}</details>`:''}</section>`;
+    }).join('');
+    return `<section class="swb__briefing" aria-label="开工简报">${content || '<div class="swb__briefing-empty"><h2>接下来做什么？</h2><p>当前没有等待处理的委托。查看下方任务，或记下一件要做的事。</p></div>'}</section>`;
+  }
+
   const render = () => {
     if (disposed) return;
     calendarPreview.close();
@@ -255,29 +285,21 @@ export function mountWorkbench(container, options = {}) {
         </header>
 
         <section class="swb__welcome">
-          <div><p class="swb__eyebrow">${escapeHTML(selectedDate)}</p><h1>${escapeHTML(dateHeading)}</h1>
+          <div><p class="swb__eyebrow">${escapeHTML(dateHeading)}</p><h1>${escapeHTML(briefingTitle())}</h1>
           <p class="swb__subline">完成 ${completed} / ${dayTasks.length} 项任务</p></div>
           <div class="swb__progress" aria-label="今日完成进度"><span style="--progress:${dayTasks.length ? Math.round(completed / dayTasks.length * 100) : 0}%"></span></div>
         </section>
 
-        ${options.loadOverview?overviewCardsHTML(overviewState,escapeHTML):''}
-        <div class="swb__overview">
-        <section class="swb__calendar" aria-label="月历">
-          <header class="swb__calendar-head"><h2>${visibleMonth.getFullYear()}年${visibleMonth.getMonth() + 1}月</h2><div><button class="swb__text-button" data-action="today" aria-label="月历回到今天">今天</button>${options.onOpenCalendar?'<button class="swb__text-button" data-action="open-calendar">展开日历</button>':''}<button class="swb__quiet" data-action="prev-month" aria-label="上个月">‹</button><button class="swb__quiet" data-action="next-month" aria-label="下个月">›</button></div></header>
-          <div class="swb__calendar-grid"><div class="swb__weekday">一</div><div class="swb__weekday">二</div><div class="swb__weekday">三</div><div class="swb__weekday">四</div><div class="swb__weekday">五</div><div class="swb__weekday">六</div><div class="swb__weekday">日</div>${monthCells}</div>
-        </section>
-        <section class="swb__pomodoro" aria-label="番茄计时器"><div><p class="swb__eyebrow">专注时间</p><strong data-clock-time>25:00</strong><span data-clock-status>准备专注</span></div><div class="swb__pom-controls"><div><button data-clock-phase="focus" class="is-active">专注 25</button><button data-clock-phase="break">休息 5</button></div><button class="swb__save" data-clock-action="start">开始</button><button class="swb__cancel" data-clock-action="reset">重置</button></div></section>
-        </div>
       ${loadError ? `<p class="swb__error" role="alert">${escapeHTML(loadError)}</p>` : ""}
-
+        <div class="swb__home-layout">
+          <div class="swb__home-work">
+            ${briefingHTML()}
         <section class="swb__quick" aria-label="快速新增">
           <button class="swb__quick-task" data-action="new-task"><span class="swb__plus">＋</span><span>记一件要做的事</span><kbd>N</kbd></button>
           <button class="swb__quick-event" data-action="new-event"><span>＋</span>安排日程</button>
           ${options.onCreateProject?`<button class="swb__quick-project" data-action="new-project" ${projectCreating?'disabled':''}><span aria-hidden="true">＋</span>${projectCreating?'正在打开项目…':'新建项目'}</button>`:''}
           <button class="swb__quick-note" data-action="new-note" ${options.onCreateNote && !noteCreating ? "" : "disabled"}><span>▤</span>${noteCreating?"正在打开笔记…":"新建笔记"}</button>
         </section>
-
-        <div class="swb__columns">
           <section class="swb__section swb__tasks">
             <div class="swb__section-head"><div><span class="swb__section-icon swb__section-icon--task">✓</span><h2>任务</h2><span class="swb__count">${dayTasks.length}</span></div>
               <select class="swb__filter" aria-label="筛选任务"><option value="all">全部</option><option value="待办">待办</option><option value="进行中">进行中</option><option value="已完成">已完成</option></select>
@@ -285,10 +307,18 @@ export function mountWorkbench(container, options = {}) {
             <div class="swb__list" data-list="tasks">${visibleTasks.length ? visibleTasks.map(taskCard).join("") : `<div class="swb__empty"><span>◇</span><strong>${dayTasks.length ? "这个筛选下没有任务" : "今天还没有任务"}</strong><small>先记下来，之后再安排时间也可以。</small><button data-action="new-task">＋ 新建任务</button></div>`}</div>
           </section>
 
+            ${options.loadOverview?overviewCardsHTML(overviewState,escapeHTML):''}
+          </div>
+          <aside class="swb__home-side" aria-label="日期与安排">
           <section class="swb__section swb__events">
             <div class="swb__section-head"><div><span class="swb__section-icon swb__section-icon--event">◷</span><h2>日程</h2><span class="swb__count">${dayEvents.length}</span></div><button class="swb__text-button" data-action="new-event">＋ 添加</button></div>
             <div class="swb__timeline" data-list="events">${dayEvents.length ? dayEvents.map(eventCard).join("") : `<div class="swb__empty swb__empty--event"><span>◷</span><strong>日程留白</strong><small>安排一个会议或专注时段。</small><button data-action="new-event">＋ 新建日程</button></div>`}</div>
-          </section>
+          </section>        <section class="swb__calendar" aria-label="月历">
+          <header class="swb__calendar-head"><h2>${visibleMonth.getFullYear()}年${visibleMonth.getMonth() + 1}月</h2><div><button class="swb__text-button" data-action="today" aria-label="月历回到今天">今天</button>${options.onOpenCalendar?'<button class="swb__text-button" data-action="open-calendar">展开日历</button>':''}<button class="swb__quiet" data-action="prev-month" aria-label="上个月">‹</button><button class="swb__quiet" data-action="next-month" aria-label="下个月">›</button></div></header>
+          <div class="swb__calendar-grid"><div class="swb__weekday">一</div><div class="swb__weekday">二</div><div class="swb__weekday">三</div><div class="swb__weekday">四</div><div class="swb__weekday">五</div><div class="swb__weekday">六</div><div class="swb__weekday">日</div>${monthCells}</div>
+        </section>
+        <section class="swb__pomodoro" aria-label="番茄计时器"><div><p class="swb__eyebrow">专注时间</p><strong data-clock-time>25:00</strong><span data-clock-status>准备专注</span></div><div class="swb__pom-controls"><div><button data-clock-phase="focus" class="is-active">专注 25</button><button data-clock-phase="break">休息 5</button></div><button class="swb__save" data-clock-action="start">开始</button><button class="swb__cancel" data-clock-action="reset">重置</button></div></section>
+          </aside>
         </div>
         <footer class="swb__footer"><span>内容保存在思源工作空间</span><span>计时在本次插件运行期间持续；关闭思源后不保证提醒</span></footer>
         <div class="swb__modal-host"></div>
@@ -612,6 +642,13 @@ export function mountWorkbench(container, options = {}) {
     if(target.dataset.overview){options.onOverviewSelect?.(target.dataset.overview);return;}
     if(target.dataset.action==='refresh-overview'){void refreshOverview();return;}
     if(target.dataset.action==='open-calendar'){options.onOpenCalendar?.(selectedDate);return;}
+    if(target.dataset.openAgentJob) {
+      try {
+        const opened = await options.onOpenAgentJob?.(target.dataset.openAgentJob);
+        if (opened === false) throw new Error('请先保存或取消尚未完成的编辑，再打开委托。');
+      } catch(error) { if(!disposed){loadError=error?.message||'无法打开委托，请刷新后重试';render();} }
+      return;
+    }
     if(target.dataset.delegateTask){void options.onDelegateTask?.(tasks.find(task=>task.id===target.dataset.delegateTask));return;}
     if (target.dataset.action === "new-task") showForm("task");
     if (target.dataset.action === "new-event") showForm("event");

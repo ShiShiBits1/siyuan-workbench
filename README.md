@@ -6,7 +6,9 @@ Tasks, projects, calendar, notes and Agent workflows inside SiYuan's document ar
 
 ![Workbench preview](preview.png)
 
-Version **1.10.3** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+Version **1.10.4** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+
+Cancel a running assignment from the assignment page and keep previously saved work. For interrupted assignments, check for an existing deliverable to send it for review. Selected assignments use rounded cards with wrapping titles.
 
 Answer Agent questions in the sidebar or in the workbench to continue the same request. Workbench tools let the Agent list today's tasks, create or complete a task, and create an event. Attachments are shared as SiYuan resource references. Reading their contents requires a suitable enabled tool. If a connection fails, check any operations already performed before sending again.
 

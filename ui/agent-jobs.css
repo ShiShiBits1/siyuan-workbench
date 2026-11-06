@@ -1,2 +1,23 @@
 .swj{--job-green:#277e68;--job-line:var(--b3-border-color,#dce5df);padding:22px 28px;font:13px/1.55 var(--b3-font-family,sans-serif);color:var(--b3-theme-on-background,#20382f)}.swj *{box-sizing:border-box}.swj button,.swj input,.swj select,.swj textarea{font:inherit;color:inherit;background:var(--b3-theme-background,#fff);border:1px solid var(--job-line);border-radius:5px;padding:7px 10px}.swj button{cursor:pointer}.swj button:disabled{opacity:.5;cursor:default}.swj button:hover:not(:disabled){border-color:var(--job-green)}.swj :is(button,input,textarea,select):focus-visible{outline:2px solid var(--job-green);outline-offset:2px}.swj .swj__primary{background:var(--job-green);border-color:var(--job-green);color:#fff}.swj__head,.swj__head>div:last-child,.swj__job>header,.swj__actions,.swj footer{display:flex;align-items:center;justify-content:space-between;gap:10px}.swj h2{margin:0;font-size:19px}.swj h3{margin:0;font-size:16px}.swj h4{font-size:14px;margin:12px 0 8px}.swj__head p,.swj__notice,.swj__stop-note,.swj__status{font-size:12px;color:var(--b3-theme-on-surface,#718078)}.swj__notice{padding:10px 12px;border-left:3px solid var(--job-green);background:var(--b3-theme-surface,#f5f8f6)}.swj__layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:22px;margin-top:20px}.swj__sidebar{border-right:1px solid var(--job-line);padding-right:18px}.swj label{display:block;margin:10px 0}.swj label>input:not([type=checkbox]),.swj label>textarea,.swj label>select{display:block;width:100%;margin-top:5px}.swj textarea{resize:vertical}.swj__list article{margin:8px 0}.swj__list button{display:block;width:100%;text-align:left;overflow-wrap:anywhere}.swj__list strong,.swj__list span{display:block}.swj__list span{font-size:11px;color:var(--b3-theme-on-surface,#718078);margin-top:4px}.swj__list button[aria-pressed=true]{border-color:var(--job-green);border-left-width:3px}.swj__scope,.swj__questions,.swj__review{padding:12px;border:1px solid var(--job-line);margin:14px 0;border-radius:5px}.swj__scope pre{max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.swj__state{font-size:12px;white-space:nowrap;color:var(--job-green)}.swj__actions{flex-wrap:wrap;justify-content:flex-start}.swj__materials{max-height:200px;overflow:auto}.swj .swj__check{display:flex;align-items:center;gap:8px}.swj__check input{flex-shrink:0}.swj fieldset{border:1px solid var(--job-line);border-radius:5px;margin:14px 0}.swj__error,.swj__warning{color:var(--b3-theme-error,#b4483a);overflow-wrap:anywhere}.swj__preview{overflow-wrap:anywhere}.swj__preview pre{white-space:pre;overflow:auto;background:var(--b3-theme-surface,#f5f8f6);padding:12px}.swj [hidden]{display:none}.swj__detail{min-width:0}@media(max-width:760px){.swj{padding:16px}.swj__layout{grid-template-columns:1fr}.swj__sidebar{border-right:0;border-bottom:1px solid var(--job-line);padding:0 0 12px}.swj__list{display:flex;gap:8px;overflow:auto;max-height:150px}.swj__list article{min-width:180px}.swj__head{align-items:flex-start;flex-wrap:wrap}}
 .swj__weekly{padding:12px;border-left:3px solid var(--job-green);background:var(--b3-theme-surface,#f5f8f6);margin:12px 0}.swj__weekly p{font-size:12px;color:var(--b3-theme-on-surface,#718078)}.swj__items{margin:18px 0}.swj__items article{padding:12px;border:1px solid var(--job-line);border-radius:5px;margin:10px 0}.swj__items p{white-space:pre-wrap;overflow-wrap:anywhere}.swj__scope pre{white-space:pre-wrap}.swj__head>div:last-child{flex-wrap:wrap}
+
+/* A selectable record card has a fixed radius even in the workbench's pill toolbar theme. */
+.swj .swj__list button.swj__job-card[data-job-select] {
+  border-radius: 9px;
+  padding: 8px 11px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.swj__list .swj__job-card[aria-pressed="true"] {
+  border: 1px solid var(--job-green);
+  box-shadow: inset 3px 0 var(--job-green);
+  background: color-mix(in srgb, var(--job-green) 8%, var(--b3-theme-background, white));
+}
+.swj .swj__job-card:focus-visible { outline: 2px solid var(--job-green); outline-offset: -3px; }
+.swj__sidebar { min-width: 0; }
+@container workbench (max-width: 760px) {
+  .swj__layout { grid-template-columns: minmax(0,1fr); }
+  .swj__sidebar { border-right: 0; border-bottom: 1px solid var(--job-line); padding: 0 0 12px; }
+  .swj__list { display: grid; gap: 6px; overflow: auto; max-height: 32vh; }
+  .swj__list article { min-width: 0; margin: 0; }
+}

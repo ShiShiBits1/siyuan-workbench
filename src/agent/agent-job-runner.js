@@ -2,11 +2,77 @@ import {newAgentJob,transitionAgentJob,buildAgentJobPrompt,parseAgentResult} fro
 import {newNodeID} from '../data/node-id.js';
 const active=new Map(),unconfirmed=new Set();
 const aborted=signal=>{if(signal?.aborted)throw new DOMException('已停止委托，已保存的成果仍保留','AbortError');};
+
+// A transport may stay pending even after abort. Detach only generation (which
+// cannot write a workbench document), never an in-flight repository write.
+async function generateUntilStopped(client, input, signal, onToken) {
+  aborted(signal);
+  let stop;
+  const stopped = new Promise((_, reject) => {
+    stop = () => reject(new DOMException('已停止生成', 'AbortError'));
+    signal.addEventListener('abort', stop, {once:true});
+  });
+  try {
+    return await Promise.race([stopped, client.generate(input, {
+      signal,
+      onToken: token => { if (!signal.aborted) return onToken?.(token); },
+    })]);
+  } finally {
+    signal.removeEventListener('abort', stop);
+  }
+}
+
 export function createAgentJobRunner({repository,client,plannerRepository,workbenchRepository}={}) {
   const key=id=>repository.notebookId+':'+id;
   async function tracked(id,operation){try{return await operation();}catch(error){if(error.commitState)unconfirmed.add(key(id));throw error;}}
-  async function move(job,state,patch={}){const next=transitionAgentJob(job,state,patch);return repository.patch(job.id,next,{expectedRevision:job.revision});}
-  async function guarded(id,operation){if(active.has(key(id)))throw new Error('该委托正在执行，请等待或停止');if(unconfirmed.has(key(id)))throw new Error('上次保存结果待核查，请先检查恢复');const controller=new AbortController();active.set(key(id),controller);try{return await tracked(id,async()=>{const job=await repository.get(id);if((job.actionItems||[]).some(item=>item.plannedTaskId&&item.status!=='adopted'))throw new Error('行动项保存结果待核查，请先检查恢复');return operation(controller);});}finally{active.delete(key(id));}}
+  async function move(job,state,patch={}){
+    const next=transitionAgentJob(job,state,patch);
+    return repository.patch(job.id,{...patch,state:next.state},{expectedRevision:job.revision});
+  }
+  async function guarded(id, operation, kind='edit') {
+    const jobKey = key(id);
+    if (active.has(jobKey)) throw new Error('该委托正在执行，请等待或停止');
+    const lock = {kind, controller:new AbortController()};
+    active.set(jobKey,lock);
+    lock.promise = tracked(id, async () => {
+      const job = await repository.get(id);
+      const stoppingRun = kind==='cancel' && ['queued','validating','running','canceled'].includes(job.state);
+      const requiresConfirmed = kind!=='recover' && !stoppingRun;
+      if (requiresConfirmed && unconfirmed.has(jobKey)) throw new Error('上次保存结果待核查，请先检查恢复');
+      if (requiresConfirmed && (job.actionItems||[]).some(item=>item.plannedTaskId&&item.status!=='adopted')) {
+        throw new Error('行动项保存结果待核查，请先检查恢复');
+      }
+      return operation(lock.controller, job);
+    }).finally(() => active.delete(jobKey));
+    return lock.promise;
+  }
+  function hasPendingOutput(job) {
+    return job.plannedDeliverableId && !(job.deliverables||[]).some(item=>item.id===job.plannedDeliverableId);
+  }
+  async function inspectOutput(job) {
+    const output = await repository.inspectDeliverable(job);
+    if (output?.id !== job.plannedDeliverableId || output.runId !== job.runId) throw new Error('成果身份未通过核对');
+    return [...(job.deliverables||[]),output];
+  }
+  async function recordCancellation(job) {
+    if (job.state === 'canceled') return job;
+    const patch = {};
+    if (hasPendingOutput(job)) {
+      try {
+        patch.deliverables = await inspectOutput(job);
+      } catch {
+        patch.error = '预分配的成果尚未核实，已保留原记录，可继续核查。';
+      }
+    }
+    return move(job,'canceled',patch);
+  }
+  function cancelPersisted(id) {
+    return guarded(id,async (_controller,job) => {
+      const canceled = await recordCancellation(job);
+      unconfirmed.delete(key(id));
+      return canceled;
+    },'cancel');
+  }
   async function inspectActionItem(job,item){
     if(!plannerRepository?.get||!item.taskSnapshot||!item.plannedTaskId)throw new Error('行动项缺少可核验的计划任务记录');
     const task=await plannerRepository.get(item.plannedTaskId),expected=item.taskSnapshot;
@@ -21,21 +87,21 @@ export function createAgentJobRunner({repository,client,plannerRepository,workbe
       return tracked(job.id,()=>repository.create(job));
     },
     async run(id,answers='',options={}) {
-      return guarded(id,async controller=>{
+      return guarded(id,async (controller,initialJob)=>{
         const forward=()=>controller.abort();options.signal?.addEventListener('abort',forward,{once:true});if(options.signal?.aborted)controller.abort();
-        let job;
+        let job, ownsRun=false;
         try{
-          job=await repository.get(id);aborted(controller.signal);
+          job=initialJob;aborted(controller.signal);
           if(!['draft','needs_input','changes_requested','failed'].includes(job.state))throw new Error('请先处理当前委托状态，不能重复执行');
           if(typeof answers!=='string'||answers.length>20000)throw new Error('补充答复最多20000字');
           if(job.state==='needs_input'&&!answers.trim())throw new Error('请先回答补充问题');
-          job=await move(job,'queued',{supplements:answers.trim()?[...job.supplements,answers.trim()]:job.supplements,error:null,questions:[],runId:newNodeID(),plannedDeliverableId:null,plannedDeliverableMarkdown:null});aborted(controller.signal);
+          job=await move(job,'queued',{supplements:answers.trim()?[...job.supplements,answers.trim()]:job.supplements,error:null,questions:[],runId:newNodeID(),plannedDeliverableId:null,plannedDeliverableMarkdown:null});ownsRun=true;aborted(controller.signal);
           job=await move(job,'validating');aborted(controller.signal);
           if(!job.material.trim()&&!job.sourceIds.length&&!job.supplements.length){job=await move(job,'needs_input',{questions:['请粘贴需要处理的材料，或提供可依据的具体内容；当前没有可供整理的材料。']});return job;}
           const materials=[];for(const source of job.sourceIds){aborted(controller.signal);materials.push(await repository.readMaterial(source));}
           const prompt=buildAgentJobPrompt(job,materials);if(prompt.length>240000)throw new Error('显式材料总量超出240000字，请缩小范围');
           job=await move(job,'running');aborted(controller.signal);
-          const text=await client.generate({taskID:job.runId,input:prompt},{signal:controller.signal,onToken:options.onToken});aborted(controller.signal);
+          const text=await generateUntilStopped(client,{taskID:job.runId,input:prompt},controller.signal,options.onToken);aborted(controller.signal);
           const result=parseAgentResult(text,[...job.sourceIds,...(job.referenceIds||[])]);
           if(job.type!=='meeting'&&result.actionItems?.length)throw new Error('只有会议委托接受结构化行动项');
           if(result.status==='needs_input')return await move(job,'needs_input',{questions:result.questions});
@@ -49,13 +115,13 @@ export function createAgentJobRunner({repository,client,plannerRepository,workbe
           return job;
         }catch(error){
           if(error.commitState){unconfirmed.add(key(id));throw error;}
-          if(job&&['queued','validating','running'].includes(job.state)){
-            try{job=await move(job,controller.signal.aborted?'canceled':'failed',{error:controller.signal.aborted?'已停止生成；保存过的文档仍保留':error.message});}
+          if(ownsRun&&['queued','validating','running'].includes(job.state)){
+            try{job=controller.signal.aborted?await recordCancellation(job):await move(job,'failed',{error:error.message});}
             catch(saveError){unconfirmed.add(key(id));throw saveError;}
           }
           throw error;
         }finally{options.signal?.removeEventListener('abort',forward);}
-      });
+      },'run');
     },
     async accept(id,{completeTask=false}={}){if(typeof completeTask!=='boolean')throw new Error('完成关联任务必须明确选择');return guarded(id,async()=>{
       let job=await repository.get(id);job=await move(job,'accepted',{acceptedAt:new Date().toISOString(),taskCompletionError:null});
@@ -86,16 +152,29 @@ export function createAgentJobRunner({repository,client,plannerRepository,workbe
         throw error;
       }
     });},
-    async cancel(id){const running=active.get(key(id));if(running){running.abort();return null;}return guarded(id,async()=>{const job=await repository.get(id);return move(job,'canceled');});},
+    async cancel(id){
+      const lock=active.get(key(id));
+      if (!lock) return cancelPersisted(id);
+      if (lock.kind==='cancel') return lock.promise;
+      if (lock.kind!=='run') throw new Error('正在保存或核查当前操作，请稍后再取消');
+      if (!lock.canceling) {
+        lock.controller.abort();
+        // Let any write already sent finish before reading the durable state.
+        lock.canceling=lock.promise.catch(()=>{}).then(()=>cancelPersisted(id));
+      }
+      return lock.canceling;
+    },
     async recover(id){
-      if(active.has(key(id)))throw new Error('委托仍在本窗口执行，请先停止');
-      return tracked(id,async()=>{
-      let job=await repository.get(id);
+      return guarded(id,async(_controller,job)=>{
       const pending=(job.actionItems||[]).filter(item=>item.plannedTaskId&&item.status!=='adopted');
       if(pending.length){
         const items=[...job.actionItems];
         for(let i=0;i<items.length;i++)if(items[i].plannedTaskId&&items[i].status!=='adopted'){await inspectActionItem(job,items[i]);items[i]={...items[i],status:'adopted',error:null};}
         job=await repository.patch(id,{actionItems:items},{expectedRevision:job.revision});
+      }
+      if(job.state==='canceled' && hasPendingOutput(job)){
+        const deliverables=await inspectOutput(job);
+        job=await repository.patch(id,{deliverables,error:null},{expectedRevision:job.revision});
       }
       if(!['queued','validating','running'].includes(job.state)){unconfirmed.delete(key(id));return job;}
       if(job.plannedDeliverableId){
@@ -104,7 +183,7 @@ export function createAgentJobRunner({repository,client,plannerRepository,workbe
         const recovered=await move(job,'awaiting_review',{deliverables:job.deliverables.some(item=>item.id===deliverable.id)?job.deliverables:[...job.deliverables,deliverable],error:'已核对中断前成果，等待人工验收'});unconfirmed.delete(key(id));return recovered;
       }
       const recovered=await move(job,'failed',{error:'上次执行已中断，没有预分配的成果写入；可检查输入后手动重新执行'});unconfirmed.delete(key(id));return recovered;
-      });
+      },'recover');
     },
   };return runner;
 }

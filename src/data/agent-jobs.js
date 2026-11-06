@@ -5,12 +5,18 @@ const fence='```workbench-agent-job\n';
 const queues=new Map();
 // SiYuan's Markdown round-trip removes repeated empty paragraph separators.
 // Preserve fenced content verbatim: code blocks can legitimately contain blanks.
-export function normalizeAgentMarkdown(markdown){
+export function normalizeAgentMarkdown(markdown, nativeListSpacing = false){
   const result=[];let fenceChar='',fenceLength=0,blank=false;
-  for(const line of markdown.replace(/\r\n?/g,'\n').split('\n')){
+  for(let line of markdown.replace(/\r\n?/g,'\n').split('\n')){
     const match=line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
     if(fenceChar){result.push(line);if(match&&match[1][0]===fenceChar&&match[1].length>=fenceLength&&!match[2].trim()){fenceChar='';fenceLength=0;}blank=false;continue;}
     if(match){fenceChar=match[1][0];fenceLength=match[1].length;result.push(line);blank=false;continue;}
+    if (nativeListSpacing && /^[-+*] /.test(line)) {
+      // SiYuan inserts a block separator before lists following an ATX heading,
+      // and a second space between a leading bold label and its value.
+      if (blank && /^#{1,6} /.test(result.at(-2) || '')) result.pop();
+      line = line.replace(/^([-+*] \*\*[^*\\`]+\*\*) {2}(?=\S)/u, '$1 ');
+    }
     if(!line.trim()){if(!blank)result.push('');blank=true;}else{result.push(line);blank=false;}
   }
   return result.join('\n').trim();
@@ -26,7 +32,11 @@ export function verifyAgentKramdown(actual,expected){
     if(/^\s*\{:\s+id="\d{14}-[a-z0-9]{7}"[^\n]*\}\s*$/.test(line))continue;
     lines.push(line.replace(/\{:\s+id="\d{14}-[a-z0-9]{7}"[^}\n]*\}/g,''));
   }
-  return verifyAgentDocumentContent(lines.join('\n'),expected);
+  const markdown = lines.join('\n');
+  if (expected.startsWith('<!-- siyuan-workbench-deliverable:')) {
+    return normalizeAgentMarkdown(markdown, true) === normalizeAgentMarkdown(expected, true);
+  }
+  return verifyAgentDocumentContent(markdown,expected);
 }
 export class AgentJobRepository {
   constructor(notebookId,{post=defaultPost}={}){if(!isValidNodeID(notebookId))throw new Error('笔记本ID无效');this.notebookId=notebookId;this.post=post;}
@@ -101,7 +111,7 @@ export class AgentJobRepository {
   }
   deliverableContent(job,markdown){return `<!-- siyuan-workbench-deliverable:v1:${job.id}:${job.runId} -->`+'\n\n'+markdown+'\n\n## 来源\n\n'+[...new Set([...job.sourceIds,...(job.referenceIds||[])])].map(source=>`- [来源 ${source}](siyuan://blocks/${source})`).join('\n')+'\n\n粘贴材料与补充答复保存在委托记录中。内容为待用户核验的草稿。';}
   async verifyDocument(id,expected){
-    if(expected.startsWith('<!-- siyuan-workbench-deliverable:')&&expected.includes('](siyuan://blocks/')){
+    if(expected.startsWith('<!-- siyuan-workbench-deliverable:')){
       const raw=await this.api('/api/block/getBlockKramdown',{id});return raw?.id===id&&verifyAgentKramdown(raw.kramdown,expected);
     }
     const exported=await this.api('/api/export/exportMdContent',{id});if(verifyAgentDocumentContent(exported?.content,expected))return true;

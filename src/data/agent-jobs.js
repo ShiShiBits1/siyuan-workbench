@@ -80,6 +80,34 @@ export class AgentJobRepository {
     if(matches.length!==1)throw new Error('委托元数据缺失或重复');return matches[0];
   }
   async get(id){return (await this.read(id)).job;}
+  async delete(id,{expectedRevision}={}) {
+    const key=this.notebookId+':'+id;
+    const operation=(queues.get(key)||Promise.resolve()).catch(()=>{}).then(async()=>{
+      const before=await this.read(id);
+      if(expectedRevision!==before.job.revision)throw new Error('委托已更新，请刷新后重新确认删除');
+      if(['queued','validating','running'].includes(before.job.state))throw new Error('请先取消执行中的委托');
+      const location=await this.checkPath(id,stableNodeID(this.notebookId+':siyuan-workbench:agent-jobs'));
+      const children=await this.api('/api/filetree/listDocsByPath',{notebook:this.notebookId,path:location.path,showHidden:true,maxListCount:2});
+      if(children?.box!==this.notebookId||children.path!==location.path||!Array.isArray(children.files))throw new Error('无法确认委托的子文档范围');
+      if(children.files.length)throw new Error('委托下还有子文档，请先在思源文档树整理后再删除');
+      const raw=await this.api('/api/block/getBlockKramdown',{id});
+      const fresh=await this.read(id),current=await this.api('/api/block/getBlockKramdown',{id});
+      await this.checkPath(id,stableNodeID(this.notebookId+':siyuan-workbench:agent-jobs'));
+      if(raw?.id!==id||typeof raw.kramdown!=='string'||current?.id!==id||current.kramdown!==raw.kramdown||fresh.markdown!==before.markdown)throw new Error('委托内容已变化，请刷新后重新确认删除');
+      const freshChildren=await this.api('/api/filetree/listDocsByPath',{notebook:this.notebookId,path:location.path,showHidden:true,maxListCount:2});
+      if(freshChildren?.box!==this.notebookId||freshChildren.path!==location.path||!Array.isArray(freshChildren.files)||freshChildren.files.length)throw new Error('委托子文档已变化，请重新核查');
+      try{await this.api('/api/filetree/removeDocByID',{id});}
+      catch(error){error.commitState='unknown';error.documentID=id;throw error;}
+      try{
+        await this.api('/api/sqlite/flushTransaction',{});
+        const rows=await this.api('/api/query/sql',{mode:'readonly',stmt:`SELECT id FROM blocks WHERE id='${id}' LIMIT 1`});
+        if(!Array.isArray(rows)||rows.length)throw new Error('文档删除状态尚未确认，请刷新核查');
+      }catch(error){error.commitState='committed';error.documentID=id;throw error;}
+      return {id,deleted:true};
+    });
+    queues.set(key,operation);
+    try{return await operation;}finally{if(queues.get(key)===operation)queues.delete(key);}
+  }
   async create(job){const parent=await this.folder('agent-jobs');const stored={...job,notebookId:this.notebookId};await this.createDocument(job.id,parent,job.title,'# Agent委托\n\n委托进度与成果可在工作台查看。此记录可保留原生补充正文。\n\n'+fence+JSON.stringify(stored,null,2)+'\n```');return this.get(job.id);}
   async patch(id,patch,{expectedRevision}={}){
     const key=this.notebookId+':'+id;const previous=queues.get(key)||Promise.resolve();const operation=previous.catch(()=>{}).then(async()=>{

@@ -6,7 +6,9 @@ Tasks, projects, calendar, notes and Agent workflows inside SiYuan's document ar
 
 ![Workbench preview](preview.png)
 
-Version **1.10.4** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+Version **1.10.5** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+
+Delete an assignment from its detail page after confirming the scope. This removes its document and any notes inside it while retaining linked tasks and deliverable documents. Cancel active assignments first and reconcile pending results before deletion.
 
 Cancel a running assignment from the assignment page and keep previously saved work. For interrupted assignments, check for an existing deliverable to send it for review. Selected assignments use rounded cards with wrapping titles.
 

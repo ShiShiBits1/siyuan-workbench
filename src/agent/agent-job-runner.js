@@ -81,6 +81,14 @@ export function createAgentJobRunner({repository,client,plannerRepository,workbe
     return task;
   }
   const runner={
+    async delete(id,{expectedRevision}={}) {
+      return guarded(id,async(_controller,job)=>{
+        if(['queued','validating','running'].includes(job.state))throw new Error('请先取消执行中的委托');
+        if(expectedRevision!==undefined&&expectedRevision!==job.revision)throw new Error('委托已更新，请刷新后重新确认删除');
+        if(hasPendingOutput(job))throw new Error('还有待核查的成果，请先核查成果后再删除委托');
+        return repository.delete(id,{expectedRevision:job.revision});
+      },'delete');
+    },
     async create(input){
       const job=newAgentJob({type:input.template||'material',title:input.title,goal:input.objective,taskId:input.taskId,sourceIds:input.materialIds,referenceIds:input.referenceIds,material:input.pastedMaterial});
       if(job.taskId&&plannerRepository?.get){const task=await plannerRepository.get(job.taskId);if(task.kind!=='task')throw new Error('委托只能关联当前笔记本的任务');}

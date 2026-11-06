@@ -21,3 +21,7 @@
   .swj__list { display: grid; gap: 6px; overflow: auto; max-height: 32vh; }
   .swj__list article { min-width: 0; margin: 0; }
 }
+
+.swj__delete { margin:12px 0; padding:12px; border:1px solid var(--b3-theme-error,#b4483a); border-radius:8px; overflow-wrap:anywhere; }
+.swj__delete p { margin:0 0 10px; }
+.swj__delete>div { display:flex; flex-wrap:wrap; gap:8px; }

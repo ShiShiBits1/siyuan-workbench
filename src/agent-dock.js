@@ -70,7 +70,9 @@ export function createAgentDock({
         controller=mountWorkspace(chat,{
           notebookId:current.notebookId,notebookName:current.notebookName,
           chat:(input,options)=>{assertCurrent();return client.chat(input,options);},
-          confirm:(id,approved)=>client.confirm(id,approved),prepareAttachments,onOpenAttachment,
+          confirm:(id,approved)=>client.confirm(id,approved),
+          answerQuestion:(id,answers)=>client.answerQuestion(id,answers),
+          prepareAttachments,onOpenAttachment,
           onBusyChange(value){
             notifyBusy(value,runToken);
             if(disposed||token!==runToken)return;

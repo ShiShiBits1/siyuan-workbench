@@ -6,7 +6,9 @@ Tasks, projects, calendar, notes and Agent workflows inside SiYuan's document ar
 
 ![Workbench preview](preview.png)
 
-Version **1.10.2** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+Version **1.10.3** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+
+Answer Agent questions in the sidebar or in the workbench to continue the same request. Workbench tools let the Agent list today's tasks, create or complete a task, and create an event. Attachments are shared as SiYuan resource references. Reading their contents requires a suitable enabled tool. If a connection fails, check any operations already performed before sending again.
 
 The reminders sidebar hides completed tasks while retaining scheduled events. The full reminder center keeps completed-task history; reopening a task and refreshing restores its reminder in the sidebar.
 

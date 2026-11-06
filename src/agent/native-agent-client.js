@@ -10,7 +10,7 @@ const aborted=signal=>{if(signal?.aborted)throw signal.reason?.name==='AbortErro
  * separately before appending a new user entry; never rebuild model entries locally.
  */
 export function createNativeAgentClient({fetcher=globalThis.fetch,post=defaultPost}={}) {
-  let busy=false;
+  let activeRun=null;
   const pending=new Set(),confirming=new Set();
   async function api(path,body){
     const response=await post(path,body);
@@ -30,9 +30,12 @@ export function createNativeAgentClient({fetcher=globalThis.fetch,post=defaultPo
     async chat(input,{onEvent=()=>{},signal}={}) {
       if(!input||typeof input.message!=='string'||!input.message.trim()||input.message.length>100000)throw new Error('请输入有效消息（最多 100000 字符）');
       if(input.sessionID && !isValidNodeID(input.sessionID))throw new Error('Agent 会话 ID 无效');
-      if(busy)throw new Error('当前对话仍在进行，请先停止或等待完成');
-      aborted(signal);busy=true;
+      if(activeRun)throw new Error('当前对话仍在进行，请先停止或等待完成');
+      aborted(signal);
+      const run={signal,questions:new Map()};
+      activeRun=run;
       let sessionID=input.sessionID||newNodeID(),reader,abortReader,completed=false,turnID='';
+      let savedSessionID=input.sessionID;
       pending.clear();
       try{
         let session;
@@ -54,8 +57,9 @@ export function createNativeAgentClient({fetcher=globalThis.fetch,post=defaultPo
         const userEntryID=newNodeID();
         const entry={id:userEntryID,type:'user',content:input.message,timestamp:Date.now()};
         const saved=await api('/api/ai/agent/saveSession',{...writableSession(session),entries:[...session.entries,entry],updatedAt:Date.now(),expectedRevision:session.revision});
-        aborted(signal);
         if(!Number.isInteger(saved?.revision)||saved.revision<=session.revision)throw new Error('Agent 没有确认会话已保存');
+        savedSessionID=sessionID;
+        aborted(signal);
         // Adapter metadata: let a stopped first turn keep its real native session.
         await onEvent({event:'session',data:{sessionID}});aborted(signal);
         const response=await fetcher('/api/ai/agent/chat',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'text/event-stream'},body:JSON.stringify({message:input.message,sessionID,userEntryID,contentRevision:saved.revision,language:'zh-CN'}),signal});
@@ -78,6 +82,12 @@ export function createNativeAgentClient({fetcher=globalThis.fetch,post=defaultPo
           if(name==='confirm'){
             if(typeof payload?.confirmID!=='string'||!payload.confirmID)throw new Error('Agent 审批事件缺少标识');
             pending.add(payload.confirmID);
+          }
+          if(name==='question'){
+            const id=payload?.questionID;
+            if(typeof id!=='string'||!id.trim())throw new Error('Agent 提问事件缺少标识');
+            if(!Array.isArray(payload.arguments?.questions)||!payload.arguments.questions.length)throw new Error('Agent 提问事件缺少问题');
+            if(!run.questions.has(id))run.questions.set(id,'pending');
           }
           if(name==='turn'||name==='done')turnID=payload?.turnID||turnID;
           await onEvent({event:name,data:payload});aborted(signal);
@@ -111,12 +121,30 @@ export function createNativeAgentClient({fetcher=globalThis.fetch,post=defaultPo
         return {sessionID,turnID};
       }catch(failure){
         const error=signal?.aborted?new DOMException('已停止生成','AbortError'):failure instanceof Error?failure:new Error(String(failure));
-        error.sessionID=sessionID;throw error;
+        if(savedSessionID)error.sessionID=savedSessionID;
+        throw error;
       }finally{
-        busy=false;pending.clear();confirming.clear();
+        activeRun=null;pending.clear();confirming.clear();
         if(abortReader)signal?.removeEventListener('abort',abortReader);
         try{await reader?.cancel();}catch{ /* Preserve the original error/abort. */ }
         reader?.releaseLock();
+      }
+    },
+    async answerQuestion(questionID,answers){
+      const run=activeRun;
+      const state=run?.questions.get(questionID);
+      if(!state||state==='answered'||run.signal?.aborted)throw new Error('该问题已失效或已回答');
+      if(state==='submitting')throw new Error('回答正在提交');
+      if(!Array.isArray(answers)||!answers.length||Array.from(answers).some(answer=>typeof answer!=='string'||!answer.trim())){
+        throw new Error('请选择或填写回答');
+      }
+      run.questions.set(questionID,'submitting');
+      try{
+        await api('/api/ai/agent/question',{questionID,answers:[...answers]});
+        run.questions.set(questionID,'answered');
+      }catch(error){
+        run.questions.set(questionID,'pending');
+        throw error;
       }
     },
     async confirm(confirmID,approved){

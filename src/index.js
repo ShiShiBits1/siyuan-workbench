@@ -90,7 +90,7 @@ import '../ui/support-development.css';
 
 const SETTINGS_KEY = 'workbench-settings.json';
 const POMODORO_KEY = 'workbench-pomodoro.json';
-const WORKBENCH_VERSION = '1.10.2';
+const WORKBENCH_VERSION = '1.10.3';
 
 export default class SiYuanWorkbench extends Plugin {
     async onload() {
@@ -771,6 +771,7 @@ export default class SiYuanWorkbench extends Plugin {
                         prepareAttachments,
                         onOpenAttachment:path=>this.openTaskAttachment(path),
                         confirm:(id,approved)=>client.confirm(id,approved),
+                        answerQuestion:(id,answers)=>client.answerQuestion(id,answers),
                         onBusyChange:busy=>{if(busy)this.agentRuns.add(runToken);else this.agentRuns.delete(runToken);this.agentBusy=this.agentRuns.size>0;},
                         onRecordChange:()=>this.notifyWorkspaceChange(),
                     });

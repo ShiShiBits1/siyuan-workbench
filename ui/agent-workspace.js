@@ -1,4 +1,5 @@
 import {createAgentMarkdownRenderer} from './agent-markdown.js';
+import {appendAgentQuestion} from './agent-question.js';
 const icons={
   attach:'<path d="M8 13.5l5.6-5.6a2.1 2.1 0 0 1 3 3l-7.1 7.1a3.5 3.5 0 0 1-5-5l8-8"/>',
   send:'<path d="M10 16V4M5 9l5-5 5 5"/>',
@@ -24,6 +25,14 @@ function effectsLabel(effects={}) {
   if(effects.network || effects.dataEgress || effects.externalWrite)items.push('涉及外部数据操作');
   if(effects.externalCost)items.push('涉及外部费用');
   return items.length?items.join(' · '):'请核对操作内容后决定';
+}
+
+function chatFailureText(failure) {
+  const reason = failure?.message || '思源未返回错误详情';
+  if (/(^|[:：]\s*)ChatGPT connection failed[.!。]?$/i.test(reason)) {
+    return '思源未能连接 ChatGPT。请在思源原生 Agent 中检查连接。原始原因：' + reason;
+  }
+  return reason;
 }
 
 /** UI delegates model configuration, SSE and decisions to the native client. */
@@ -58,7 +67,9 @@ export function mountAgentWorkspace(container,options={}) {
     fileInput.addEventListener('change',selectFiles);
     input.addEventListener('paste',pasteImages);
   }
-  const showError=message=>{error.textContent=message||'';error.hidden=!message;};
+  form.querySelector('footer').before(error);
+  let lastChatError = '';
+  const showError=(message=lastChatError)=>{error.textContent=message;error.hidden=!message;};
   function selectFiles(){
     const selected=Array.from(fileInput.files||[]);
     fileInput.value='';
@@ -152,6 +163,7 @@ export function mountAgentWorkspace(container,options={}) {
     return {node,body,setText,append:value=>setText(raw+String(value??''))};
   }
   function cancelPending(run) {
+    for (const card of run.questions.values()) card.close();
     for(const card of run?.approvals.values()||[]) {
       if(card.decided||card.pending)continue;
       card.decided=true;card.buttons.forEach(button=>{button.disabled=true;});card.note.textContent='本次请求已取消';
@@ -187,7 +199,8 @@ export function mountAgentWorkspace(container,options={}) {
     const text=input.value.trim();if(!text&&!files.length){input.focus();return;}
     const message=text||'请查看我上传的附件。';
     if(typeof options.chat!=='function'){showError('Agent 尚未连接。请检查思源 AI 配置。');return;}
-    const run={controller:new AbortController(),approvals:new Map(),tools:new Map(),request:++generation,assistant:null,failure:null};active=run;
+    const run={controller:new AbortController(),approvals:new Map(),questions:new Map(),tools:new Map(),request:++generation,assistant:null,failure:null};active=run;
+    lastChatError='';
     showError();controls(true);
     const current=()=>!disposed&&active===run&&run.request===generation;
     try {
@@ -197,7 +210,7 @@ export function mountAgentWorkspace(container,options={}) {
         status.textContent='正在上传附件…';
         try{prepared=await options.prepareAttachments([...files],{signal:run.controller.signal});}
         catch(failure){
-          if(current()){showError(`${failure?.message||'附件上传失败'}。消息和附件已保留。`);status.textContent='附件上传未完成';}
+          if(current()){showError(`附件上传失败：${failure?.message||'思源未确认上传结果'}`);status.textContent='消息和附件已保留';}
           return;
         }
         if(!current())return;
@@ -211,13 +224,24 @@ export function mountAgentWorkspace(container,options={}) {
         if(kind==='content') {run.assistant ||= entry('assistant');run.assistant.append(data.token||'');status.textContent='正在回复…';}
         else if(kind==='session'&&typeof data.sessionID==='string')sessionID=data.sessionID;
         else if(kind==='confirm')approval(run,data);
+        else if(kind==='question'){
+          if (run.questions.has(data.questionID)) return;
+          const question = appendAgentQuestion(log, data, {
+            answerQuestion: options.answerQuestion,
+            isCurrent: current,
+            ownsTurn: () => !disposed && generation === run.request,
+            onAnswered: () => { status.textContent = '回答已提交，等待 Agent 继续…'; },
+          });
+          run.questions.set(data.questionID, question);
+          run.assistant = null;
+          status.textContent = '请在对话中回答 Agent 的问题';
+        }
         else if(kind==='tool_call'){const row=entry('tool',`${toolTitle(data.name)}：执行中`);run.tools.set(data.callID,row);status.textContent='正在调用工具…';}
         else if(kind==='tool_result'){
           const row=run.tools.get(data.callID)||entry('tool');row.setText(`${toolTitle(data.name)}\n${data.result??''}`);
           try{void Promise.resolve(options.onRecordChange?.()).catch(()=>{});}catch{/* A refresh callback must not alter the native operation result. */}
         }
         else if(kind==='error'||kind==='interrupted'){run.failure=new Error(data.message||'原生 Agent 请求中断');showError(run.failure.message);}
-        else if(kind==='question'||kind==='permission'){run.failure=new Error('此步骤需要思源原生 Agent 面板处理，请停止本次请求后在原生面板继续。');showError(run.failure.message);}
       }});
       if(!current())return;
       if(run.failure)throw run.failure;
@@ -226,7 +250,10 @@ export function mountAgentWorkspace(container,options={}) {
     }catch(failure){
       if(!current())return;
       if(typeof failure?.sessionID==='string')sessionID=failure.sessionID;
-      showError(`${failure?.message||'请求失败'}。如尚未配置模型，请在思源“设置 → AI”中配置。消息已保留。`);status.textContent='请求未完成';
+      lastChatError = chatFailureText(failure);
+      if (run.tools.size || run.approvals.size) lastChatError += '\n再次发送前，请核对本轮工具操作的结果。';
+      showError(lastChatError);
+      status.textContent = '草稿已保留';
     }finally{
       if(current()){cancelPending(run);active=null;controls(false);}
     }
@@ -237,7 +264,7 @@ export function mountAgentWorkspace(container,options={}) {
     if(button.dataset.agentAction==='attach'){fileInput?.click();return;}
     if(button.dataset.agentAction==='stop'){stopRun();return;}
     if(button.dataset.agentAction==='new'){
-      stopRun();sessionID=null;++generation;log.innerHTML='<p class="swa__empty">新会话已准备好，输入消息开始。</p>';input.value='';resizeInput();files=[];renderFiles();showError();status.textContent='准备就绪';input.focus();
+      stopRun();sessionID=null;++generation;log.innerHTML='<p class="swa__empty">新会话已准备好，输入消息开始。</p>';input.value='';resizeInput();files=[];renderFiles();lastChatError='';showError();status.textContent='准备就绪';input.focus();
     }
   }
   root.addEventListener('click',click);form.addEventListener('submit',submit);

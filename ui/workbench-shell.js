@@ -1,6 +1,7 @@
 import {mountNotesLibrary} from './notes-library.js';
 import {createViewTransition} from './view-transition.js';
 import {mountDocumentTree} from './document-tree.js';
+import {mountPersistentAgentBar} from './persistent-agent-bar.js';
 
 const navigationGroups = [
   ['执行', ['day', 'projects', 'planner', 'reminders', 'focus', 'task-templates']],
@@ -10,7 +11,7 @@ const navigationGroups = [
 ];
 
 /** Keep both views mounted so switching tabs preserves drafts and filters. */
-export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptions, documentTree, views = []}) {
+export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptions, documentTree, agentOptions, views = []}) {
   const escape = value => String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
   const ids = new Set(['day', 'notes']);
   for (const view of views) {
@@ -23,18 +24,20 @@ export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptio
   const grouped = new Set(navigationGroups.flatMap(([, group])=>group));
   const groups = [...navigationGroups, ['其他', [...labels.keys()].filter(id=>!grouped.has(id))]];
   const tabMarkup = id=>`<button type="button" role="tab" aria-selected="${id==='day'}" tabindex="${id==='day'?0:-1}" data-workbench-view="${id}">${escape(labels.get(id))}</button>`;
-  container.innerHTML = `<div class="swb-shell"><div class="swb-shell__layout">
+  container.innerHTML = `<div class="swb-shell${agentOptions?' swb-shell--assistant':''}"><div class="swb-shell__layout">
     <button type="button" class="swb-shell__toggle" aria-expanded="false">工作台导航</button>
     <nav class="swb-shell__tabs" aria-label="工作台导航"><div role="tablist" aria-label="工作台视图" aria-orientation="vertical">${groups.map(([name,group])=>{
       const tabs=group.filter(id=>labels.has(id));
       return tabs.length?`<div class="swb-shell__group" role="group" aria-label="${name}"><div aria-hidden="true">${name}</div>${tabs.map(tabMarkup).join('')}</div>`:'';
     }).join('')}</div>${documentTree?'<div class="swb-tree" aria-label="当前笔记本文档"></div>':''}</nav>
     <div class="swb-shell__main">
+      <div class="swb-shell__body">
       <header class="swb-shell__bar"><strong>今日工作</strong><p hidden></p></header>
       <p class="swb-shell__feedback" role="status" hidden></p>
       <section class="swb-shell__day" role="tabpanel" aria-label="今日工作"></section>
       <section class="swb-shell__notes" role="tabpanel" aria-label="笔记与文档" hidden></section>
       ${views.map(view=>`<section data-workbench-panel="${view.id}" role="tabpanel" aria-label="${escape(view.label)}" hidden></section>`).join('')}
+      </div>${agentOptions?'<div class="swb-shell__assistant"></div>':''}
     </div></div></div>`;
   const layout = container.querySelector('.swb-shell__layout');
   const toggle = container.querySelector('.swb-shell__toggle');
@@ -60,10 +63,12 @@ export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptio
     return creatingNote;
   }:undefined;
   const cleanupDay = mountDay(day, {...dayOptions,onCreateNote:createNote});
+  const assistant=agentOptions?mountPersistentAgentBar(container.querySelector('.swb-shell__assistant'),agentOptions):null;
   const cleanupTree = documentTree && mountDocumentTree(container.querySelector('.swb-tree'), {...documentTree,onOpen:()=>setNavigation(false)});
 
   function select(view) {
     if (disposed || !ids.has(view)) return false;
+    if(view==='agent'&&assistant){assistant.reveal();assistant.focus();return true;}
     // A tab change must not hide an unfinished daily-work form.
     if (selected === 'day' && view !== 'day' && day.querySelector('.swb__modal-host form')) return false;
     const changed = selected !== view;
@@ -93,7 +98,7 @@ export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptio
     }
     if (view === 'day' && changed) void safely(()=>cleanupDay.refresh?.());
     if(changed){
-      const scrollHost=container.closest('.swb-host');
+      const scrollHost=agentOptions?container.querySelector('.swb-shell__body'):container.closest('.swb-host');
       if(scrollHost)scrollHost.scrollTop=0;
       motion.show(view==='day'?day:view==='notes'?notes:container.querySelector(`[data-workbench-panel="${view}"]`));
     }
@@ -163,9 +168,11 @@ export function mountWorkbenchShell(container, {mountDay, dayOptions, notesOptio
       else controller?.dispose?.();
     }
     cleanupDay();
+    assistant?.dispose();
     container.innerHTML = '';
   };
   cleanup.select = select;
+  cleanup.revealAssistant = () => assistant?.reveal();
   cleanup.mountTaskEditor=(...args)=>cleanupDay.mountTaskEditor(...args);
   cleanup.openNewProject=async()=>select('projects')&&(await controllers.get('projects')?.openCreate?.() ?? false);
   cleanup.selectDocument = id => cleanupTree?.select(id);

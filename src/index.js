@@ -72,6 +72,7 @@ import '../ui/planner.css';
 import '../ui/reminder-center.css';
 import '../ui/focus-controls.css';
 import '../ui/agent-workspace.css';
+import '../ui/persistent-agent-bar.css';
 import '../ui/calendar-workspace.css';
 import '../ui/agent-jobs.css';
 import '../ui/job-batch-panel.css';
@@ -90,7 +91,7 @@ import '../ui/support-development.css';
 
 const SETTINGS_KEY = 'workbench-settings.json';
 const POMODORO_KEY = 'workbench-pomodoro.json';
-const WORKBENCH_VERSION = '1.11.0';
+const WORKBENCH_VERSION = '1.11.1';
 
 export default class SiYuanWorkbench extends Plugin {
     async onload() {
@@ -611,7 +612,22 @@ export default class SiYuanWorkbench extends Plugin {
                         return tree.create(id,draft);
                     }),
                 };
-                const mounted = mountWorkbenchShell(mount, {mountDay: mountWorkbench, documentTree, dayOptions: {
+                const persistentClient=createNativeAgentClient();
+                const persistentRunToken={};
+                const persistentUpload=createTaskAttachmentUploader({post:(path,body)=>fetchSyncPost(path,body,undefined,false)});
+                const persistentAttachments=createChatAttachmentPreparer(files=>this.runWorkspaceWrite(repository.notebookId,()=>persistentUpload(files)),()=>this.assertWorkspaceAvailable(repository.notebookId));
+                const agentOptions={
+                    notebookId:repository.notebookId,
+                    notebookName:(window.siyuan?.notebooks||[]).find(book=>book.id===repository.notebookId)?.name||'当前笔记本',
+                    chat:(input,options)=>{this.assertWorkspaceAvailable(repository.notebookId);return persistentClient.chat(input,options);},
+                    confirm:(id,approved)=>persistentClient.confirm(id,approved),
+                    answerQuestion:(id,answers)=>persistentClient.answerQuestion(id,answers),
+                    prepareAttachments:persistentAttachments,
+                    onOpenAttachment:path=>this.openTaskAttachment(path),
+                    onBusyChange:busy=>{if(busy)this.agentRuns.add(persistentRunToken);else this.agentRuns.delete(persistentRunToken);this.agentBusy=this.agentRuns.size>0;},
+                    onRecordChange:()=>this.notifyWorkspaceChange(),
+                };
+                const mounted = mountWorkbenchShell(mount, {mountDay: mountWorkbench, documentTree, agentOptions, dayOptions: {
                     date: selectedDate,
                     tasks,
                     events,

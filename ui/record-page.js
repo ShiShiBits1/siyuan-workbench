@@ -109,13 +109,14 @@ export function mountRecordPage(host, {
 
   function position() {
     if (!visible || disposed) return;
-    const rect = host.getBoundingClientRect();
+    const rect = (host.querySelector('.swb-shell__body') || host).getBoundingClientRect();
     const viewportWidth = window?.innerWidth || 1024;
     const viewportHeight = window?.innerHeight || 768;
     const left = Math.max(0, rect.left || 0);
     const right = Math.min(viewportWidth, rect.right || viewportWidth);
-    const top = Math.max(0, rect.top || 0);
-    const bottom = Math.min(viewportHeight, rect.bottom || viewportHeight);
+    const boundary = host.closest('.swb-host')?.getBoundingClientRect();
+    const top = Math.max(0, rect.top || 0, boundary?.top || 0);
+    const bottom = Math.min(viewportHeight, rect.bottom || viewportHeight, boundary?.bottom || viewportHeight);
     const available = Math.max(0, right - left);
     const width = available <= 760 ? available : Math.min(720, Math.max(440, available * .66));
     Object.assign(frame.style, {
@@ -295,6 +296,8 @@ export function mountRecordPage(host, {
   window?.addEventListener('scroll', position, true);
   const observer = window?.ResizeObserver ? new window.ResizeObserver(position) : null;
   observer?.observe(host);
+  const bodyBoundary=host.querySelector('.swb-shell__body');
+  if(bodyBoundary)observer?.observe(bodyBoundary);
   return {
     open, close, isOpen: () => visible,
     dispose() {

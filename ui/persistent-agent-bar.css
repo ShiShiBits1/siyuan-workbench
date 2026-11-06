@@ -1,0 +1,63 @@
+.swb-ai-bar {
+  position: relative;
+  min-width: 0;
+  flex-shrink: 0;
+  border-top: 1px solid var(--b3-border-color, #dce3df);
+  background: var(--b3-theme-background, #fff);
+  color: var(--b3-theme-on-background, #24392e);
+  padding: 10px 18px 12px;
+  box-sizing: border-box;
+}
+.swb-ai-bar .swa {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  min-width: 0;
+  max-height: 72vh;
+}
+.swb-ai-bar .swa__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 7px;
+  flex-shrink: 0;
+}
+.swb-ai-bar .swa__head > div {
+  display: flex;
+  align-items: baseline;
+  flex: 1;
+  gap: 10px;
+  min-width: 120px;
+}
+.swb-ai-bar .swa__head > button { padding: 3px 8px; font-size: 12px; }
+.swb-ai-bar__context {
+  color: var(--b3-theme-on-surface, #66796c);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.swb-ai-bar .swa__hint { margin: 0 0 6px; }
+.swb-ai-bar .swa__templates { margin: 0 0 6px; }
+.swb-ai-bar .swa__templates button { padding: 3px 8px; font-size: 12px; }
+.swb-ai-bar .swa__transcript {
+  height: min(32vh, 320px);
+  max-height: 32vh;
+  min-height: 80px;
+  flex: 0 1 auto;
+  overflow: auto;
+  padding: 8px 12px;
+}
+.swb-ai-bar .swa__composer { margin-top: 7px; padding: 8px 12px; min-width: 0; }
+.swb-ai-bar .swa__composer textarea { min-height: 36px; max-height: 120px; margin: 0 0 4px; }
+.swb-ai-bar .swa__attachments { margin: 0; max-height: 96px; overflow: auto; }
+.swb-ai-bar .swa__attachment-hint { font-size: 11px; }
+.swb-ai-bar .swa__error { max-height: 72px; overflow: auto; font-size: 12px; }
+.swb-ai-bar .swa__composer footer { flex-wrap: nowrap; align-items: center; }
+.swb-ai-bar .swa__composer footer > div { margin-inline-start: auto; flex: none; }
+.swb-ai-bar .swa__status { overflow-wrap: anywhere; }
+.swb-ai-bar [hidden] { display: none !important; }
+@media (max-width: 600px) {
+  .swb-ai-bar { padding: 8px 10px; }
+  .swb-ai-bar .swa__hint, .swb-ai-bar .swa__templates { display: none; }
+  .swb-ai-bar .swa__composer { padding: 6px 8px; }
+  .swb-ai-bar .swa__attachment-hint { display: none; }
+}

@@ -6,7 +6,7 @@ Tasks, projects, calendar, notes and Agent workflows inside SiYuan's document ar
 
 ![Workbench preview](preview.png)
 
-Version **1.11.0** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
+Version **1.11.1** · Requires **SiYuan 3.8.9+** · The interface is primarily Simplified Chinese.
 
 The daily briefing puts assignments needing review or additional information first and opens the exact assignment. Daily tasks, events, mini calendar, focus timer, overview, task planning and the full calendar remain accessible. The briefing uses retrieved workbench records; connecting a separate material-management system is future work.
 

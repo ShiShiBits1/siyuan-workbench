@@ -41,6 +41,15 @@
 .swb-shell .swb-shell__main button:not(.swb__day,[data-overview]), .swb-shell .swb-shell__toggle, .swb-shell .swp__more summary { border-radius:999px; }
 .swb-shell__toggle { border: 1px solid var(--swb-nav-border); background: var(--swb-nav-surface); }
 .swb-shell__feedback { margin: 8px 16px; font-size: 13px; }
+.swb-host:has(.swb-shell--assistant) { display:flex; flex-direction:column; overflow:hidden; }
+.swb-host:has(.swb-shell--assistant) > .swb-location { flex:none; }
+.swb-host:has(.swb-shell--assistant) > .swb-workspace { flex:1; min-height:0; overflow:hidden; }
+.swb-shell--assistant { height:100%; min-height:0; }
+.swb-shell--assistant .swb-shell__layout { height:100%; min-height:0; box-sizing:border-box; }
+.swb-shell--assistant .swb-shell__main { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.swb-shell--assistant .swb-shell__body { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; }
+.swb-shell--assistant .swb-shell__assistant { flex:none; min-width:0; }
+.swb-shell--assistant .swb-shell__tabs { position:static; max-height:100%; }
 @container workbench (max-width: 760px) {
   .swb-shell__layout { position:relative; grid-template-columns:minmax(0, 1fr); align-content:start; padding:8px; }
   .swb-shell__toggle { display:block; justify-self:start; align-self:start; }

@@ -260,6 +260,21 @@ export function mountWorkbench(container, options = {}) {
     return `<section class="swb__briefing" aria-label="开工简报">${content || '<div class="swb__briefing-empty"><h2>接下来做什么？</h2><p>当前没有等待处理的委托。查看下方任务，或记下一件要做的事。</p></div>'}</section>`;
   }
 
+  function handoffHTML() {
+    if (typeof options.onDelegateTask !== 'function') return '';
+    const candidates = [...new Map(tasks.filter(task => task.id && statusLabel(task.status) !== '已完成').map(task => [task.id,task])).values()];
+    const rows = items => items.map(task => {
+      const scheduled = task.startAt || task.endAt;
+      const when = scheduled && Number.isFinite(Date.parse(scheduled))
+        ? new Date(scheduled).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
+        : '未安排时间';
+      const description = [task.category,when].filter(Boolean).join(' · ');
+      return `<article class="swb__briefing-row"><div><strong>${escapeHTML(task.title || '未命名任务')}</strong><p>${escapeHTML(description)}</p></div><button type="button" data-delegate-task="${escapeHTML(task.id)}">核对范围并交给助手</button></article>`;
+    }).join('');
+    const remaining = candidates.slice(3);
+    return `<section class="swb__handoff" aria-label="可以交给助手"><header><h2>可以交给助手</h2><span>${candidates.length} 项</span></header>${candidates.length ? rows(candidates.slice(0,3)) : '<p class="swb__handoff-empty">当前任务中没有可交接的未完成事项。</p>'}${remaining.length ? `<details class="swb__briefing-fold"><summary>展开其余 ${remaining.length} 项任务</summary>${rows(remaining)}</details>` : ''}</section>`;
+  }
+
   const render = () => {
     if (disposed) return;
     calendarPreview.close();
@@ -294,8 +309,9 @@ export function mountWorkbench(container, options = {}) {
         <div class="swb__home-layout">
           <div class="swb__home-work">
             ${briefingHTML()}
+            ${handoffHTML()}
         <section class="swb__quick" aria-label="快速新增">
-          <button class="swb__quick-task" data-action="new-task"><span class="swb__plus">＋</span><span>记一件要做的事</span><kbd>N</kbd></button>
+          <button class="swb__quick-task" data-action="new-task"><span class="swb__plus">＋</span><span>新建任务</span><kbd>N</kbd></button>
           <button class="swb__quick-event" data-action="new-event"><span>＋</span>安排日程</button>
           ${options.onCreateProject?`<button class="swb__quick-project" data-action="new-project" ${projectCreating?'disabled':''}><span aria-hidden="true">＋</span>${projectCreating?'正在打开项目…':'新建项目'}</button>`:''}
           <button class="swb__quick-note" data-action="new-note" ${options.onCreateNote && !noteCreating ? "" : "disabled"}><span>▤</span>${noteCreating?"正在打开笔记…":"新建笔记"}</button>
@@ -649,7 +665,15 @@ export function mountWorkbench(container, options = {}) {
       } catch(error) { if(!disposed){loadError=error?.message||'无法打开委托，请刷新后重试';render();} }
       return;
     }
-    if(target.dataset.delegateTask){void options.onDelegateTask?.(tasks.find(task=>task.id===target.dataset.delegateTask));return;}
+    if(target.dataset.delegateTask){
+      try{
+        const task=tasks.find(task=>task.id===target.dataset.delegateTask);
+        if(!task || statusLabel(task.status)==='已完成')throw new Error('任务已完成或不可读，请刷新后重新选择');
+        const opened=await options.onDelegateTask?.(task);
+        if(opened===false)throw new Error('请先保存或取消尚未完成的编辑，再创建委托草稿');
+      }catch(error){if(!disposed){loadError=error?.message||'无法交接任务，请重试';render();}}
+      return;
+    }
     if (target.dataset.action === "new-task") showForm("task");
     if (target.dataset.action === "new-event") showForm("event");
     if(target.dataset.deleteTask){confirmTaskDelete(tasks.find(task=>task.id===target.dataset.deleteTask));return;}

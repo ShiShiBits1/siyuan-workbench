@@ -48,7 +48,7 @@
 .swb__day.is-selected i b,.swb__day.is-selected i em { background:#fff; }
 .swb__quick { display:flex; gap:8px; margin-bottom:18px; }
 .swb__quick-task,.swb__quick-event,.swb__quick-note,.swb__quick-project { display:flex; align-items:center; gap:9px; min-height:42px; padding:0 13px; border-radius:9px; font-size:12px; }
-.swb__quick-task { flex:1; border:1px solid var(--swb-line); background:var(--swb-panel); color:var(--swb-muted); text-align:left; }
+.swb__quick-task { flex:0 0 auto; border:1px solid var(--swb-line); background:var(--swb-panel); color:var(--swb-muted); text-align:left; }
 .swb__quick-task:hover { border-color:#a8cabc; }
 .swb__plus { color:var(--swb-green); font-size:18px; }
 .swb__quick-task kbd { margin-left:auto; padding:2px 5px; border:1px solid var(--swb-line); border-radius:4px; color:#9aa2a0; background:var(--swb-paper); font-size:10px; }
@@ -214,6 +214,10 @@
 .swb__home-work,.swb__home-side { min-width: 0; }
 .swb__home-side { padding-left: 24px; border-left: 1px solid var(--swb-line); display: grid; gap: 26px; }
 .swb__briefing { margin-bottom: 28px; }
+.swb__handoff { order: 2; margin-bottom: 28px; }
+.swb__handoff > header { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--swb-line); }
+.swb__handoff h2 { margin: 0; color: var(--swb-green); font-size: 18px; line-height: 1.4; }
+.swb__handoff > header span,.swb__handoff-empty { font-size: 12px; color: var(--swb-muted); }
 .swb__briefing h2 { font-size: 18px; margin: 0; color: var(--swb-green); line-height: 1.4; }
 .swb__briefing-group + .swb__briefing-group { margin-top: 28px; }
 .swb__briefing-group > header { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--swb-line); }
@@ -227,7 +231,7 @@
 .swb .swb__briefing-row button:focus-visible { outline: 2px solid var(--swb-green); outline-offset: 3px; }
 .swb__briefing-empty { padding: 6px 0 4px; }
 .swb__home-work .swb__quick { flex-wrap: wrap; padding: 14px 0 22px; border-bottom: 1px solid var(--swb-line); margin-bottom: 26px; }
-.swb__home-work .swb__quick-task { flex-basis: 100%; min-height: 48px; font-size: 14px; }
+.swb__home-work .swb__quick-task { min-height: 42px; font-size: 12px; }
 .swb__home-work .swb__tasks { margin-bottom: 28px; }
 .swb__home-work .swb__section-head h2,.swb__home-side .swb__section-head h2 { font-size: 16px; }
 .swb__home-work .swb__task-body strong,.swb__home-side .swb__event-card strong { font-size: 14px; white-space: normal; overflow-wrap: anywhere; }
